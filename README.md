@@ -91,14 +91,13 @@ For usage of FRED-M-Na:
 
 ### System tools
 
-- `g++` (C++17)
-- `git` (for auto-downloading SUNDIALS)
+- `g++` (C++17) — OpenMP (`libgomp`) is bundled with GCC; no separate install needed
 - `make`
 
 On Ubuntu/Debian:
 
 ```bash
-sudo apt install build-essential git
+sudo apt install build-essential
 ```
 
 ### Python environment
@@ -109,7 +108,7 @@ and install the required Python packages:
 ```bash
 conda create -n fred-dev python=3.14
 conda activate fred-dev
-conda install -c conda-forge cmake
+conda install -c conda-forge cmake sundials
 pip install pybind11 numpy matplotlib h5py
 ```
 
@@ -127,30 +126,19 @@ make fred-m-na CONDA_ENV_NAME=myenv
 
 ## Building
 
-### SUNDIALS (automatic — no action needed)
+### SUNDIALS
 
-On the first build, SUNDIALS v7.1.1 is cloned from GitHub and compiled into
-`third_party/sundials/install/`. Subsequent builds skip this step. Requires an
-internet connection on the first run and takes a few minutes.
-
-To pre-build SUNDIALS without compiling any app:
+SUNDIALS is provided by the conda environment (installed in the step above via
+`conda install -c conda-forge sundials`). Point the build at the conda prefix:
 
 ```bash
-make sundials
+make fred-m-na SUNDIALS_PREFIX=~/miniforge3/envs/fred-dev
 ```
 
-To remove the downloaded SUNDIALS and force a fresh download:
+If your conda base is not at `~/miniforge3`:
 
 ```bash
-make clean-sundials
-```
-
-#### Using a pre-installed SUNDIALS
-
-Supply a path to a clean SUNDIALS 7.x installation built with `-fPIC`:
-
-```bash
-make fred-m-na SUNDIALS_PREFIX=/opt/sundials-7.1.1
+make fred-m-na SUNDIALS_PREFIX=/path/to/conda/envs/fred-dev
 ```
 
 > **Note:** the patched SUNDIALS from the legacy Fortran FRED installation is not
@@ -175,7 +163,6 @@ make all
 
 ```bash
 make clean         # removes build/
-make clean-sundials  # removes third_party/sundials/ (re-downloaded on next build)
 ```
 
 ### Install Python modules system-wide
@@ -236,12 +223,12 @@ examples/
   fred_m_na/
 python/              # fred_input.py, fred_output.py helpers (copied to build/)
 doc/                 # LaTeX documentation
-third_party/         # auto-generated: SUNDIALS source + build + install (gitignored)
 build/               # compiled outputs (gitignored)
 ```
 
 ## SUNDIALS dependency
 
-FRED 2.0 uses the [SUNDIALS IDA](https://github.com/LLNL/sundials) DAE solver
-(v7.1.1). Only the IDA solver and its supporting libraries are built; ARKODE,
-CVODE, CVODES, IDAS, and KINSOL are disabled to keep build times short.
+FRED 2.0 uses the [SUNDIALS IDA](https://github.com/LLNL/sundials) DAE solver.
+The conda-forge `sundials` package is used (installed as part of the `fred-dev`
+environment). The IDA solver, OpenMP NVector, dense linear solver, and Newton
+nonlinear solver are the components required at link time.

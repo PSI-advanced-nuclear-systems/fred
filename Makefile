@@ -1,27 +1,18 @@
 SHELL = sh
 
 # ===========================================================================
-# SUNDIALS — auto-download (default) or user-supplied
+# SUNDIALS — defaults to the active conda environment
 #
-# Default behaviour: clone SUNDIALS v7.1.1 from GitHub, build static libs,
-# and install into third_party/sundials/install/ on the first build.
-# Subsequent builds skip this step (sentinel file check).
+# Install via: conda install -c conda-forge sundials
 #
-# To use an existing SUNDIALS installation instead, supply a path to a clean
-# (unpatched) SUNDIALS 7.x installation built with -fPIC:
-#   make fred-m-na SUNDIALS_PREFIX=/opt/sundials-7.1.1
+# Override if your conda env is elsewhere:
+#   make fred-m-na SUNDIALS_PREFIX=/path/to/conda/envs/fred-dev
 #
-# NOTE: the legacy Fortran FRED SUNDIALS installation (INSTDIR) is patched
-# and not compatible — always use the auto-download or a clean install.
+# NOTE: the patched SUNDIALS from the legacy Fortran FRED installation is not
+# compatible — use only a clean conda or source build.
 # ===========================================================================
 
-SUNDIALS_VERSION     = v7.1.1
-SUNDIALS_AUTO_DIR    = $(CURDIR)/third_party/sundials
-SUNDIALS_AUTO_INSTALL= $(SUNDIALS_AUTO_DIR)/install
-SUNDIALS_SENTINEL    = $(SUNDIALS_AUTO_INSTALL)/lib/libsundials_ida.a
-
-# If the user did not supply SUNDIALS_PREFIX on the command line, auto-build.
-SUNDIALS_PREFIX     ?= $(SUNDIALS_AUTO_INSTALL)
+SUNDIALS_PREFIX     ?= $(CONDA_ENV)
 SUNDIALS_INC         = $(SUNDIALS_PREFIX)/include
 # Some installations put libs in lib64/ instead of lib/.
 SUNDIALS_LIB        := $(or $(wildcard $(SUNDIALS_PREFIX)/lib64),$(SUNDIALS_PREFIX)/lib)
@@ -166,7 +157,7 @@ PY_MODULES = $(PYMOD_ROD_PY) $(PYMOD_OX_PY) $(PYMOD_MNA_PY) \
 # Top-level targets
 # ===========================================================================
 
-.PHONY: all fred fred-rod fred-ox fred-m-na exe sundials install doc clean clean-sundials
+.PHONY: all fred fred-rod fred-ox fred-m-na exe install doc clean
 
 all: fred fred-rod fred-ox fred-m-na
 
@@ -176,42 +167,6 @@ fred-ox:   $(PYMOD_OX)   $(PY_MODULES)
 fred-m-na: $(PYMOD_MNA)  $(PY_MODULES)
 
 exe: $(EXE)
-
-# ===========================================================================
-# SUNDIALS auto-download and build
-# ===========================================================================
-
-$(SUNDIALS_SENTINEL):
-	@echo "=== SUNDIALS not found — downloading and building $(SUNDIALS_VERSION) ==="
-	mkdir -p $(SUNDIALS_AUTO_DIR)
-	git clone --branch $(SUNDIALS_VERSION) --depth 1 \
-	    https://github.com/LLNL/sundials.git $(SUNDIALS_AUTO_DIR)/src
-	$(CMAKE) -S $(SUNDIALS_AUTO_DIR)/src \
-	         -B $(SUNDIALS_AUTO_DIR)/build \
-	         -DCMAKE_INSTALL_PREFIX=$(SUNDIALS_AUTO_INSTALL) \
-	         -DCMAKE_BUILD_TYPE=Release \
-	         -DBUILD_SHARED_LIBS=OFF \
-	         -DENABLE_MPI=OFF \
-	         -DENABLE_OPENMP=ON \
-	         -DBUILD_FORTRAN_MODULE_INTERFACE=OFF \
-	         -DBUILD_TESTING=OFF \
-	         -DEXAMPLES_ENABLE_C=OFF \
-	         -DEXAMPLES_ENABLE_CXX=OFF \
-	         -DBUILD_ARKODE=OFF \
-	         -DBUILD_CVODE=OFF \
-	         -DBUILD_CVODES=OFF \
-	         -DBUILD_IDAS=OFF \
-	         -DBUILD_KINSOL=OFF
-	$(CMAKE) --build $(SUNDIALS_AUTO_DIR)/build --parallel
-	$(CMAKE) --install $(SUNDIALS_AUTO_DIR)/build
-	@echo "=== SUNDIALS installed to $(SUNDIALS_AUTO_INSTALL) ==="
-
-sundials: $(SUNDIALS_SENTINEL)
-
-# Wire main build targets to auto-build SUNDIALS only when using the auto path.
-ifeq ($(SUNDIALS_PREFIX),$(SUNDIALS_AUTO_INSTALL))
-$(EXE) $(PYMOD_ROD) $(PYMOD_OX) $(PYMOD_MNA): | $(SUNDIALS_SENTINEL)
-endif
 
 # ===========================================================================
 # Link rules — each app module is self-contained
@@ -302,10 +257,6 @@ doc:
 clean:
 	rm -rf $(BUILD)
 	@echo "Cleaned build directory"
-
-clean-sundials:
-	rm -rf $(SUNDIALS_AUTO_DIR)
-	@echo "Removed third_party/sundials (re-run make to re-download)"
 
 # ===========================================================================
 # Dependency auto-generation
