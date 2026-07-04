@@ -1,0 +1,616 @@
+% $ biblatex auxiliary file $
+% $ biblatex bbl format version 3.3 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated by
+% biber as required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+
+\refsection{1}
+  \datalist[entry]{none/global//global/global/global}
+    \entry{hindmarsh2005}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{3}{}{%
+        {{hash=965424f460185670783266d3e5e69e81}{%
+           family={Hindmarsh},
+           familyi={H\bibinitperiod},
+           given={A.\bibnamedelimi C.},
+           giveni={A\bibinitperiod\bibinitdelim C\bibinitperiod}}}%
+        {{hash=96e73a1533d058be0d8dbcc2794d80d8}{%
+           family={Brown},
+           familyi={B\bibinitperiod},
+           given={P.\bibnamedelimi N.},
+           giveni={P\bibinitperiod\bibinitdelim N\bibinitperiod}}}%
+        {{hash=77e740c5cc15ad0f5b3a9c1d4bcbd84b}{%
+           family={Grant},
+           familyi={G\bibinitperiod},
+           given={K.\bibnamedelimi E.},
+           giveni={K\bibinitperiod\bibinitdelim E\bibinitperiod}}}%
+      }
+      \strng{namehash}{58f72edd75580e4b4257df34867c48d7}
+      \strng{fullhash}{58f72edd75580e4b4257df34867c48d7}
+      \strng{fullhashraw}{58f72edd75580e4b4257df34867c48d7}
+      \strng{bibnamehash}{58f72edd75580e4b4257df34867c48d7}
+      \strng{authorbibnamehash}{58f72edd75580e4b4257df34867c48d7}
+      \strng{authornamehash}{58f72edd75580e4b4257df34867c48d7}
+      \strng{authorfullhash}{58f72edd75580e4b4257df34867c48d7}
+      \strng{authorfullhashraw}{58f72edd75580e4b4257df34867c48d7}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{ACM Transactions on Mathematical Software}
+      \field{number}{3}
+      \field{title}{{SUNDIALS}: Suite of Nonlinear and Differential/Algebraic Equation Solvers}
+      \field{volume}{31}
+      \field{year}{2005}
+      \field{pages}{363\bibrangedash 396}
+      \range{pages}{34}
+      \verb{doi}
+      \verb 10.1145/1089014.1089020
+      \endverb
+    \endentry
+    \entry{waltar1981}{book}{}{}
+      \name{author}{2}{}{%
+        {{hash=17cb231cba4b62ce442521ca79ee25f8}{%
+           family={Waltar},
+           familyi={W\bibinitperiod},
+           given={A.\bibnamedelimi E.},
+           giveni={A\bibinitperiod\bibinitdelim E\bibinitperiod}}}%
+        {{hash=7eaf0582c36cf996fc8ba93bd979d75c}{%
+           family={Reynolds},
+           familyi={R\bibinitperiod},
+           given={A.\bibnamedelimi B.},
+           giveni={A\bibinitperiod\bibinitdelim B\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Pergamon Press}%
+      }
+      \strng{namehash}{d2d1ac7ccb54e4ce979b777124e97616}
+      \strng{fullhash}{d2d1ac7ccb54e4ce979b777124e97616}
+      \strng{fullhashraw}{d2d1ac7ccb54e4ce979b777124e97616}
+      \strng{bibnamehash}{d2d1ac7ccb54e4ce979b777124e97616}
+      \strng{authorbibnamehash}{d2d1ac7ccb54e4ce979b777124e97616}
+      \strng{authornamehash}{d2d1ac7ccb54e4ce979b777124e97616}
+      \strng{authorfullhash}{d2d1ac7ccb54e4ce979b777124e97616}
+      \strng{authorfullhashraw}{d2d1ac7ccb54e4ce979b777124e97616}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Fast Breeder Reactors}
+      \field{year}{1981}
+    \endentry
+    \entry{hagrman1981}{report}{}{}
+      \name{author}{3}{}{%
+        {{hash=660e1ce04b26a0761a6e45cd6eae2f4f}{%
+           family={Hagrman},
+           familyi={H\bibinitperiod},
+           given={D.\bibnamedelimi L.},
+           giveni={D\bibinitperiod\bibinitdelim L\bibinitperiod}}}%
+        {{hash=463dacca10d0de4e0f3ab75fe4bf1710}{%
+           family={Reymann},
+           familyi={R\bibinitperiod},
+           given={G.\bibnamedelimi A.},
+           giveni={G\bibinitperiod\bibinitdelim A\bibinitperiod}}}%
+        {{hash=4f743ee377337d19def9ab1fbc632e8c}{%
+           family={Monroe},
+           familyi={M\bibinitperiod},
+           given={R.\bibnamedelimi E.},
+           giveni={R\bibinitperiod\bibinitdelim E\bibinitperiod}}}%
+      }
+      \list{institution}{1}{%
+        {US Nuclear Regulatory Commission}%
+      }
+      \strng{namehash}{9af7eebacf06dacee2efe06ab43b190a}
+      \strng{fullhash}{9af7eebacf06dacee2efe06ab43b190a}
+      \strng{fullhashraw}{9af7eebacf06dacee2efe06ab43b190a}
+      \strng{bibnamehash}{9af7eebacf06dacee2efe06ab43b190a}
+      \strng{authorbibnamehash}{9af7eebacf06dacee2efe06ab43b190a}
+      \strng{authornamehash}{9af7eebacf06dacee2efe06ab43b190a}
+      \strng{authorfullhash}{9af7eebacf06dacee2efe06ab43b190a}
+      \strng{authorfullhashraw}{9af7eebacf06dacee2efe06ab43b190a}
+      \field{sortinit}{4}
+      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{number}{NUREG/CR-0479 Rev.~2, EGG-2023}
+      \field{title}{MATPRO-Version 11 (Revision 2): A Handbook of Materials Properties for Use in the Analysis of Light Water Reactor Fuel Rod Behavior}
+      \field{type}{techreport}
+      \field{year}{1981}
+    \endentry
+    \entry{karahan2009}{thesis}{}{}
+      \name{author}{1}{}{%
+        {{hash=c69b33b230bec8d31f85263ad0b4717e}{%
+           family={Karahan},
+           familyi={K\bibinitperiod},
+           given={A.},
+           giveni={A\bibinitperiod}}}%
+      }
+      \list{institution}{1}{%
+        {Massachusetts Institute of Technology}%
+      }
+      \strng{namehash}{c69b33b230bec8d31f85263ad0b4717e}
+      \strng{fullhash}{c69b33b230bec8d31f85263ad0b4717e}
+      \strng{fullhashraw}{c69b33b230bec8d31f85263ad0b4717e}
+      \strng{bibnamehash}{c69b33b230bec8d31f85263ad0b4717e}
+      \strng{authorbibnamehash}{c69b33b230bec8d31f85263ad0b4717e}
+      \strng{authornamehash}{c69b33b230bec8d31f85263ad0b4717e}
+      \strng{authorfullhash}{c69b33b230bec8d31f85263ad0b4717e}
+      \strng{authorfullhashraw}{c69b33b230bec8d31f85263ad0b4717e}
+      \field{sortinit}{5}
+      \field{sortinithash}{20e9b4b0b173788c5dace24730f47d8c}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Modelling of Thermo-Mechanical and Irradiation Behavior of Metallic and Oxide Fuels for Sodium Fast Reactors}
+      \field{type}{phdthesis}
+      \field{year}{2009}
+    \endentry
+  \enddatalist
+\endrefsection
+
+\refsection{3}
+  \datalist[entry]{none/global//global/global/global}
+    \entry{hindmarsh2005}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{3}{}{%
+        {{hash=965424f460185670783266d3e5e69e81}{%
+           family={Hindmarsh},
+           familyi={H\bibinitperiod},
+           given={A.\bibnamedelimi C.},
+           giveni={A\bibinitperiod\bibinitdelim C\bibinitperiod}}}%
+        {{hash=96e73a1533d058be0d8dbcc2794d80d8}{%
+           family={Brown},
+           familyi={B\bibinitperiod},
+           given={P.\bibnamedelimi N.},
+           giveni={P\bibinitperiod\bibinitdelim N\bibinitperiod}}}%
+        {{hash=77e740c5cc15ad0f5b3a9c1d4bcbd84b}{%
+           family={Grant},
+           familyi={G\bibinitperiod},
+           given={K.\bibnamedelimi E.},
+           giveni={K\bibinitperiod\bibinitdelim E\bibinitperiod}}}%
+      }
+      \strng{namehash}{58f72edd75580e4b4257df34867c48d7}
+      \strng{fullhash}{58f72edd75580e4b4257df34867c48d7}
+      \strng{fullhashraw}{58f72edd75580e4b4257df34867c48d7}
+      \strng{bibnamehash}{58f72edd75580e4b4257df34867c48d7}
+      \strng{authorbibnamehash}{58f72edd75580e4b4257df34867c48d7}
+      \strng{authornamehash}{58f72edd75580e4b4257df34867c48d7}
+      \strng{authorfullhash}{58f72edd75580e4b4257df34867c48d7}
+      \strng{authorfullhashraw}{58f72edd75580e4b4257df34867c48d7}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{ACM Transactions on Mathematical Software}
+      \field{number}{3}
+      \field{title}{{SUNDIALS}: Suite of Nonlinear and Differential/Algebraic Equation Solvers}
+      \field{volume}{31}
+      \field{year}{2005}
+      \field{pages}{363\bibrangedash 396}
+      \range{pages}{34}
+      \verb{doi}
+      \verb 10.1145/1089014.1089020
+      \endverb
+    \endentry
+  \enddatalist
+\endrefsection
+
+\refsection{4}
+  \datalist[entry]{none/global//global/global/global}
+    \entry{philipponneau1992}{article}{}{}
+      \name{author}{1}{}{%
+        {{hash=5770be6273ab50d70fa4ad37e556ca06}{%
+           family={Philipponneau},
+           familyi={P\bibinitperiod},
+           given={Y.},
+           giveni={Y\bibinitperiod}}}%
+      }
+      \strng{namehash}{5770be6273ab50d70fa4ad37e556ca06}
+      \strng{fullhash}{5770be6273ab50d70fa4ad37e556ca06}
+      \strng{fullhashraw}{5770be6273ab50d70fa4ad37e556ca06}
+      \strng{bibnamehash}{5770be6273ab50d70fa4ad37e556ca06}
+      \strng{authorbibnamehash}{5770be6273ab50d70fa4ad37e556ca06}
+      \strng{authornamehash}{5770be6273ab50d70fa4ad37e556ca06}
+      \strng{authorfullhash}{5770be6273ab50d70fa4ad37e556ca06}
+      \strng{authorfullhashraw}{5770be6273ab50d70fa4ad37e556ca06}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Journal of Nuclear Materials}
+      \field{title}{Thermal conductivity of (U,Pu)O$_{2-x}$ mixed oxide fuel}
+      \field{volume}{188}
+      \field{year}{1992}
+      \field{pages}{194\bibrangedash 197}
+      \range{pages}{4}
+      \verb{doi}
+      \verb 10.1016/0022-3115(92)90470-7
+      \endverb
+    \endentry
+    \entry{popov2000}{report}{}{}
+      \name{author}{4}{}{%
+        {{hash=7ab5a9bfc7562961b100f18b66387465}{%
+           family={Popov},
+           familyi={P\bibinitperiod},
+           given={S.\bibnamedelimi G.},
+           giveni={S\bibinitperiod\bibinitdelim G\bibinitperiod}}}%
+        {{hash=3a9937700514f42ee6f474abfe52b2ed}{%
+           family={Carbajo},
+           familyi={C\bibinitperiod},
+           given={J.\bibnamedelimi J.},
+           giveni={J\bibinitperiod\bibinitdelim J\bibinitperiod}}}%
+        {{hash=d132812b24ea82c719dbca3d1275f9c0}{%
+           family={Ivanov},
+           familyi={I\bibinitperiod},
+           given={V.\bibnamedelimi K.},
+           giveni={V\bibinitperiod\bibinitdelim K\bibinitperiod}}}%
+        {{hash=a752a593475a394fc71cb9ca39735eb6}{%
+           family={Yoder},
+           familyi={Y\bibinitperiod},
+           given={G.\bibnamedelimi L.},
+           giveni={G\bibinitperiod\bibinitdelim L\bibinitperiod}}}%
+      }
+      \list{institution}{1}{%
+        {Oak Ridge National Laboratory}%
+      }
+      \strng{namehash}{982bca1ef5aabfeb6f638238a5ea7728}
+      \strng{fullhash}{e6dbc69e3fba24ed4746b65da71d9960}
+      \strng{fullhashraw}{e6dbc69e3fba24ed4746b65da71d9960}
+      \strng{bibnamehash}{982bca1ef5aabfeb6f638238a5ea7728}
+      \strng{authorbibnamehash}{982bca1ef5aabfeb6f638238a5ea7728}
+      \strng{authornamehash}{982bca1ef5aabfeb6f638238a5ea7728}
+      \strng{authorfullhash}{e6dbc69e3fba24ed4746b65da71d9960}
+      \strng{authorfullhashraw}{e6dbc69e3fba24ed4746b65da71d9960}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{number}{ORNL/TM-2000/351}
+      \field{title}{Thermophysical Properties of MOX and UO$_2$ Fuels Including the Effects of Irradiation}
+      \field{type}{techreport}
+      \field{year}{2000}
+    \endentry
+    \entry{hagrman1981}{report}{}{}
+      \name{author}{3}{}{%
+        {{hash=660e1ce04b26a0761a6e45cd6eae2f4f}{%
+           family={Hagrman},
+           familyi={H\bibinitperiod},
+           given={D.\bibnamedelimi L.},
+           giveni={D\bibinitperiod\bibinitdelim L\bibinitperiod}}}%
+        {{hash=463dacca10d0de4e0f3ab75fe4bf1710}{%
+           family={Reymann},
+           familyi={R\bibinitperiod},
+           given={G.\bibnamedelimi A.},
+           giveni={G\bibinitperiod\bibinitdelim A\bibinitperiod}}}%
+        {{hash=4f743ee377337d19def9ab1fbc632e8c}{%
+           family={Monroe},
+           familyi={M\bibinitperiod},
+           given={R.\bibnamedelimi E.},
+           giveni={R\bibinitperiod\bibinitdelim E\bibinitperiod}}}%
+      }
+      \list{institution}{1}{%
+        {US Nuclear Regulatory Commission}%
+      }
+      \strng{namehash}{9af7eebacf06dacee2efe06ab43b190a}
+      \strng{fullhash}{9af7eebacf06dacee2efe06ab43b190a}
+      \strng{fullhashraw}{9af7eebacf06dacee2efe06ab43b190a}
+      \strng{bibnamehash}{9af7eebacf06dacee2efe06ab43b190a}
+      \strng{authorbibnamehash}{9af7eebacf06dacee2efe06ab43b190a}
+      \strng{authornamehash}{9af7eebacf06dacee2efe06ab43b190a}
+      \strng{authorfullhash}{9af7eebacf06dacee2efe06ab43b190a}
+      \strng{authorfullhashraw}{9af7eebacf06dacee2efe06ab43b190a}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{number}{NUREG/CR-0479 Rev.~2, EGG-2023}
+      \field{title}{MATPRO-Version 11 (Revision 2): A Handbook of Materials Properties for Use in the Analysis of Light Water Reactor Fuel Rod Behavior}
+      \field{type}{techreport}
+      \field{year}{1981}
+    \endentry
+    \entry{waltar1981}{book}{}{}
+      \name{author}{2}{}{%
+        {{hash=17cb231cba4b62ce442521ca79ee25f8}{%
+           family={Waltar},
+           familyi={W\bibinitperiod},
+           given={A.\bibnamedelimi E.},
+           giveni={A\bibinitperiod\bibinitdelim E\bibinitperiod}}}%
+        {{hash=7eaf0582c36cf996fc8ba93bd979d75c}{%
+           family={Reynolds},
+           familyi={R\bibinitperiod},
+           given={A.\bibnamedelimi B.},
+           giveni={A\bibinitperiod\bibinitdelim B\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Pergamon Press}%
+      }
+      \strng{namehash}{d2d1ac7ccb54e4ce979b777124e97616}
+      \strng{fullhash}{d2d1ac7ccb54e4ce979b777124e97616}
+      \strng{fullhashraw}{d2d1ac7ccb54e4ce979b777124e97616}
+      \strng{bibnamehash}{d2d1ac7ccb54e4ce979b777124e97616}
+      \strng{authorbibnamehash}{d2d1ac7ccb54e4ce979b777124e97616}
+      \strng{authornamehash}{d2d1ac7ccb54e4ce979b777124e97616}
+      \strng{authorfullhash}{d2d1ac7ccb54e4ce979b777124e97616}
+      \strng{authorfullhashraw}{d2d1ac7ccb54e4ce979b777124e97616}
+      \field{sortinit}{4}
+      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Fast Breeder Reactors}
+      \field{year}{1981}
+    \endentry
+    \entry{lanning1975}{report}{}{}
+      \name{author}{2}{}{%
+        {{hash=b9f42190225b991d5c7aca4a145e9eb4}{%
+           family={Lanning},
+           familyi={L\bibinitperiod},
+           given={D.\bibnamedelimi D.},
+           giveni={D\bibinitperiod\bibinitdelim D\bibinitperiod}}}%
+        {{hash=6300b21ccc8887238130874fcbcd44df}{%
+           family={Hann},
+           familyi={H\bibinitperiod},
+           given={C.\bibnamedelimi R.},
+           giveni={C\bibinitperiod\bibinitdelim R\bibinitperiod}}}%
+      }
+      \list{institution}{1}{%
+        {Battelle Pacific Northwest Laboratories}%
+      }
+      \strng{namehash}{9d03a61dca5af7bf8617d23cd6854e9f}
+      \strng{fullhash}{9d03a61dca5af7bf8617d23cd6854e9f}
+      \strng{fullhashraw}{9d03a61dca5af7bf8617d23cd6854e9f}
+      \strng{bibnamehash}{9d03a61dca5af7bf8617d23cd6854e9f}
+      \strng{authorbibnamehash}{9d03a61dca5af7bf8617d23cd6854e9f}
+      \strng{authornamehash}{9d03a61dca5af7bf8617d23cd6854e9f}
+      \strng{authorfullhash}{9d03a61dca5af7bf8617d23cd6854e9f}
+      \strng{authorfullhashraw}{9d03a61dca5af7bf8617d23cd6854e9f}
+      \field{sortinit}{6}
+      \field{sortinithash}{b33bc299efb3c36abec520a4c896a66d}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{number}{BNWL-1894}
+      \field{title}{Review of Methods Applicable to the Calculation of Gap Conductance in Zircaloy-Clad {UO$_2$} Fuel Rods}
+      \field{type}{techreport}
+      \field{year}{1975}
+    \endentry
+    \entry{luzzi2004}{article}{}{}
+      \name{author}{4}{}{%
+        {{hash=2a61915dcdd1d58bd1c10d2574ecbc8d}{%
+           family={Luzzi},
+           familyi={L\bibinitperiod},
+           given={L.},
+           giveni={L\bibinitperiod}}}%
+        {{hash=60f2be5c07eb5e0c41146a0034e0a85e}{%
+           family={Cognini},
+           familyi={C\bibinitperiod},
+           given={L.},
+           giveni={L\bibinitperiod}}}%
+        {{hash=a1534022d0fdd94f2ad2c80871fde54a}{%
+           family={Magni},
+           familyi={M\bibinitperiod},
+           given={A.},
+           giveni={A\bibinitperiod}}}%
+        {{hash=34a0d8cef67543c943e11814206a4523}{%
+           family={Pozzi},
+           familyi={P\bibinitperiod},
+           given={P.},
+           giveni={P\bibinitperiod}}}%
+      }
+      \strng{namehash}{ad1604c3123e89a9c50d403438c9815a}
+      \strng{fullhash}{1e7cf0f764e1bb4b549b9689d5e82f71}
+      \strng{fullhashraw}{1e7cf0f764e1bb4b549b9689d5e82f71}
+      \strng{bibnamehash}{ad1604c3123e89a9c50d403438c9815a}
+      \strng{authorbibnamehash}{ad1604c3123e89a9c50d403438c9815a}
+      \strng{authornamehash}{ad1604c3123e89a9c50d403438c9815a}
+      \strng{authorfullhash}{1e7cf0f764e1bb4b549b9689d5e82f71}
+      \strng{authorfullhashraw}{1e7cf0f764e1bb4b549b9689d5e82f71}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Journal of Nuclear Materials}
+      \field{title}{Thermal and Mechanical Properties of the {AIM1} Austenitic Steel}
+      \field{year}{2004}
+    \endentry
+  \enddatalist
+\endrefsection
+
+\refsection{5}
+  \datalist[entry]{none/global//global/global/global}
+    \entry{timpanoFredM}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=35772bce8c216ad5356e52e957334c64}{%
+           family={Timpano},
+           familyi={T\bibinitperiod},
+           given={D.},
+           giveni={D\bibinitperiod}}}%
+      }
+      \strng{namehash}{35772bce8c216ad5356e52e957334c64}
+      \strng{fullhash}{35772bce8c216ad5356e52e957334c64}
+      \strng{fullhashraw}{35772bce8c216ad5356e52e957334c64}
+      \strng{bibnamehash}{35772bce8c216ad5356e52e957334c64}
+      \strng{authorbibnamehash}{35772bce8c216ad5356e52e957334c64}
+      \strng{authornamehash}{35772bce8c216ad5356e52e957334c64}
+      \strng{authorfullhash}{35772bce8c216ad5356e52e957334c64}
+      \strng{authorfullhashraw}{35772bce8c216ad5356e52e957334c64}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{note}{Internal EPFL source code, forked 2018; updated through 2024}
+      \field{title}{{FRED\_M\_OCT24.SRC}: Metallic Fuel Branch of {FRED}}
+      \field{year}{2024}
+    \endentry
+    \entry{karahan2009}{thesis}{}{}
+      \name{author}{1}{}{%
+        {{hash=c69b33b230bec8d31f85263ad0b4717e}{%
+           family={Karahan},
+           familyi={K\bibinitperiod},
+           given={A.},
+           giveni={A\bibinitperiod}}}%
+      }
+      \list{institution}{1}{%
+        {Massachusetts Institute of Technology}%
+      }
+      \strng{namehash}{c69b33b230bec8d31f85263ad0b4717e}
+      \strng{fullhash}{c69b33b230bec8d31f85263ad0b4717e}
+      \strng{fullhashraw}{c69b33b230bec8d31f85263ad0b4717e}
+      \strng{bibnamehash}{c69b33b230bec8d31f85263ad0b4717e}
+      \strng{authorbibnamehash}{c69b33b230bec8d31f85263ad0b4717e}
+      \strng{authornamehash}{c69b33b230bec8d31f85263ad0b4717e}
+      \strng{authorfullhash}{c69b33b230bec8d31f85263ad0b4717e}
+      \strng{authorfullhashraw}{c69b33b230bec8d31f85263ad0b4717e}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Modelling of Thermo-Mechanical and Irradiation Behavior of Metallic and Oxide Fuels for Sodium Fast Reactors}
+      \field{type}{phdthesis}
+      \field{year}{2009}
+    \endentry
+    \entry{fink1995}{report}{}{}
+      \name{author}{2}{}{%
+        {{hash=a0106cc8920a257f9df673c99bc6cc1a}{%
+           family={Fink},
+           familyi={F\bibinitperiod},
+           given={J.\bibnamedelimi K.},
+           giveni={J\bibinitperiod\bibinitdelim K\bibinitperiod}}}%
+        {{hash=28a586436def2762c81bf31b94219002}{%
+           family={Leibowitz},
+           familyi={L\bibinitperiod},
+           given={L.},
+           giveni={L\bibinitperiod}}}%
+      }
+      \list{institution}{1}{%
+        {Argonne National Laboratory}%
+      }
+      \strng{namehash}{823b5c0511797147515778fa6412a1d1}
+      \strng{fullhash}{823b5c0511797147515778fa6412a1d1}
+      \strng{fullhashraw}{823b5c0511797147515778fa6412a1d1}
+      \strng{bibnamehash}{823b5c0511797147515778fa6412a1d1}
+      \strng{authorbibnamehash}{823b5c0511797147515778fa6412a1d1}
+      \strng{authornamehash}{823b5c0511797147515778fa6412a1d1}
+      \strng{authorfullhash}{823b5c0511797147515778fa6412a1d1}
+      \strng{authorfullhashraw}{823b5c0511797147515778fa6412a1d1}
+      \field{sortinit}{6}
+      \field{sortinithash}{b33bc299efb3c36abec520a4c896a66d}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{number}{ANL/RE-95/2}
+      \field{title}{Thermodynamic and Transport Properties of Sodium Liquid and Vapor}
+      \field{type}{techreport}
+      \field{year}{1995}
+    \endentry
+    \entry{ogata1999}{incollection}{}{}
+      \name{author}{1}{}{%
+        {{hash=51d7c7727fba6bdb02033bd4eef9d9f4}{%
+           family={Ogata},
+           familyi={O\bibinitperiod},
+           given={T.},
+           giveni={T\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Elsevier}%
+      }
+      \strng{namehash}{51d7c7727fba6bdb02033bd4eef9d9f4}
+      \strng{fullhash}{51d7c7727fba6bdb02033bd4eef9d9f4}
+      \strng{fullhashraw}{51d7c7727fba6bdb02033bd4eef9d9f4}
+      \strng{bibnamehash}{51d7c7727fba6bdb02033bd4eef9d9f4}
+      \strng{authorbibnamehash}{51d7c7727fba6bdb02033bd4eef9d9f4}
+      \strng{authornamehash}{51d7c7727fba6bdb02033bd4eef9d9f4}
+      \strng{authorfullhash}{51d7c7727fba6bdb02033bd4eef9d9f4}
+      \strng{authorfullhashraw}{51d7c7727fba6bdb02033bd4eef9d9f4}
+      \field{sortinit}{9}
+      \field{sortinithash}{0a5ebc79d83c96b6579069544c73c7d4}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Comprehensive Nuclear Materials}
+      \field{chapter}{3.01}
+      \field{title}{Metallic Fuels}
+      \field{year}{2012}
+    \endentry
+    \entry{mikityuk2009}{article}{}{}
+      \name{author}{1}{}{%
+        {{hash=fafa31f217567daf1951d7a5eda43115}{%
+           family={Mikityuk},
+           familyi={M\bibinitperiod},
+           given={K.},
+           giveni={K\bibinitperiod}}}%
+      }
+      \strng{namehash}{fafa31f217567daf1951d7a5eda43115}
+      \strng{fullhash}{fafa31f217567daf1951d7a5eda43115}
+      \strng{fullhashraw}{fafa31f217567daf1951d7a5eda43115}
+      \strng{bibnamehash}{fafa31f217567daf1951d7a5eda43115}
+      \strng{authorbibnamehash}{fafa31f217567daf1951d7a5eda43115}
+      \strng{authornamehash}{fafa31f217567daf1951d7a5eda43115}
+      \strng{authorfullhash}{fafa31f217567daf1951d7a5eda43115}
+      \strng{authorfullhashraw}{fafa31f217567daf1951d7a5eda43115}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Nuclear Engineering and Design}
+      \field{number}{4}
+      \field{title}{Heat transfer to liquid metal: Review of data and correlations for tube bundles}
+      \field{volume}{239}
+      \field{year}{2009}
+      \field{pages}{680\bibrangedash 687}
+      \range{pages}{8}
+      \verb{doi}
+      \verb 10.1016/j.nucengdes.2008.12.014
+      \endverb
+    \endentry
+    \entry{subbotin1962}{article}{}{}
+      \name{author}{3}{}{%
+        {{hash=070d52b35e844b08928bde2e1c5d4014}{%
+           family={Subbotin},
+           familyi={S\bibinitperiod},
+           given={V.\bibnamedelimi I.},
+           giveni={V\bibinitperiod\bibinitdelim I\bibinitperiod}}}%
+        {{hash=b15314978f13a592039d420f5a90497f}{%
+           family={Ivanovsky},
+           familyi={I\bibinitperiod},
+           given={M.\bibnamedelimi N.},
+           giveni={M\bibinitperiod\bibinitdelim N\bibinitperiod}}}%
+        {{hash=12be47c9f496ae92679ccc58565075c3}{%
+           family={Arnoldov},
+           familyi={A\bibinitperiod},
+           given={M.\bibnamedelimi N.},
+           giveni={M\bibinitperiod\bibinitdelim N\bibinitperiod}}}%
+      }
+      \strng{namehash}{7d01102ca72ccd13791473983d822b62}
+      \strng{fullhash}{7d01102ca72ccd13791473983d822b62}
+      \strng{fullhashraw}{7d01102ca72ccd13791473983d822b62}
+      \strng{bibnamehash}{7d01102ca72ccd13791473983d822b62}
+      \strng{authorbibnamehash}{7d01102ca72ccd13791473983d822b62}
+      \strng{authornamehash}{7d01102ca72ccd13791473983d822b62}
+      \strng{authorfullhash}{7d01102ca72ccd13791473983d822b62}
+      \strng{authorfullhashraw}{7d01102ca72ccd13791473983d822b62}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Atomnaya Energiya}
+      \field{title}{Some results of an investigation of heat exchange with liquid metals}
+      \field{volume}{13}
+      \field{year}{1962}
+      \field{pages}{380}
+      \range{pages}{1}
+    \endentry
+  \enddatalist
+\endrefsection
+\endinput
+

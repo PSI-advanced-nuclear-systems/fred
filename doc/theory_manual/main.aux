@@ -1,0 +1,368 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\abx@aux@refcontext{none/global//global/global/global}
+\abx@aux@refsection{1}{3}
+\abx@aux@cite{1}{hindmarsh2005}
+\abx@aux@segm{1}{0}{hindmarsh2005}
+\abx@aux@cite{1}{hindmarsh2005}
+\abx@aux@segm{1}{0}{hindmarsh2005}
+\abx@aux@cite{1}{waltar1981}
+\abx@aux@segm{1}{0}{waltar1981}
+\abx@aux@cite{1}{hagrman1981}
+\abx@aux@segm{1}{0}{hagrman1981}
+\abx@aux@cite{1}{karahan2009}
+\abx@aux@segm{1}{0}{karahan2009}
+\newlabel{refsection:1}{{}{3}{\contentsname \@mkboth {\MakeUppercase \contentsname }{\MakeUppercase \contentsname }}{section*.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{3}{section.1}\protected@file@percent }
+\newlabel{sec:introduction}{{1}{3}{Introduction}{section.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.1}Motivation for Fuel Performance Modelling}{3}{subsection.1.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.2}Overview of FRED 2.0}{3}{subsection.1.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.3}Geometry and Coordinate System}{4}{subsection.1.3}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Schematic of the FRED radial-axial discretization. The fuel pellet is divided into $n_f$ concentric rings (blue) and the cladding into $n_c$ rings (orange), separated by the fuel-cladding gap. Each axial layer~$j$ has height~$\Delta z_j$. Filled symbols denote the finite-volume node locations.}}{4}{figure.1}\protected@file@percent }
+\newlabel{fig:rz_discretization}{{1}{4}{Schematic of the FRED radial-axial discretization. The fuel pellet is divided into $n_f$ concentric rings (blue) and the cladding into $n_c$ rings (orange), separated by the fuel-cladding gap. Each axial layer~$j$ has height~$\Delta z_j$. Filled symbols denote the finite-volume node locations}{figure.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.4}Governing Variables}{4}{subsection.1.4}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Primary unknowns per axial layer in FRED.}}{5}{table.1}\protected@file@percent }
+\newlabel{tab:variables}{{1}{5}{Primary unknowns per axial layer in FRED}{table.1}{}}
+\abx@aux@refsection{2}{6}
+\newlabel{refsection:2}{{}{6}{\contentsname \@mkboth {\MakeUppercase \contentsname }{\MakeUppercase \contentsname }}{section*.2}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {2}Thermal Conduction and Stress-Strain}{6}{section.2}\protected@file@percent }
+\newlabel{sec:thermo_mech}{{2}{6}{Thermal Conduction and Stress-Strain}{section.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Gap Pressure}{6}{subsection.2.1}\protected@file@percent }
+\newlabel{sec:gap_pressure_rod}{{2.1}{6}{Gap Pressure}{subsection.2.1}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.1.1}Prescribed Time-dependent Gap Pressure}{6}{subsubsection.2.1.1}\protected@file@percent }
+\newlabel{sec:prescribed_pressure}{{2.1.1}{6}{Prescribed Time-dependent Gap Pressure}{subsubsection.2.1.1}{}}
+\newlabel{eq:gpres_prescribed}{{1}{6}{Prescribed Time-dependent Gap Pressure}{equation.1}{}}
+\@writefile{toc}{\contentsline {paragraph}{Typical use — liquid-bonded fuel.}{6}{section*.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.1.2}Gas Bond Pressure}{6}{subsubsection.2.1.2}\protected@file@percent }
+\newlabel{sec:gas_bond_pressure}{{2.1.2}{6}{Gas Bond Pressure}{subsubsection.2.1.2}{}}
+\newlabel{eq:gpres_ae}{{2}{6}{Gas Bond Pressure}{equation.2}{}}
+\@writefile{toc}{\contentsline {paragraph}{Initial molar inventory.}{6}{section*.4}\protected@file@percent }
+\newlabel{eq:mu0}{{3}{6}{Initial molar inventory}{equation.3}{}}
+\@writefile{toc}{\contentsline {paragraph}{Temperature-weighted free volume.}{6}{section*.5}\protected@file@percent }
+\newlabel{eq:vT}{{4}{6}{Temperature-weighted free volume}{equation.4}{}}
+\@writefile{toc}{\contentsline {paragraph}{FRED-OX.}{7}{section*.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Thermal Conduction}{7}{subsection.2.2}\protected@file@percent }
+\newlabel{sec:heat}{{2.2}{7}{Thermal Conduction}{subsection.2.2}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.2.1}Differential Form}{7}{subsubsection.2.2.1}\protected@file@percent }
+\newlabel{eq:heat_pde}{{5}{7}{Differential Form}{equation.5}{}}
+\@writefile{toc}{\contentsline {paragraph}{Boundary conditions.}{7}{section*.7}\protected@file@percent }
+\newlabel{eq:gap_bc}{{6}{7}{Boundary conditions}{equation.6}{}}
+\newlabel{eq:dirichlet_bc}{{7}{7}{Boundary conditions}{equation.7}{}}
+\newlabel{eq:robin_bc}{{8}{8}{Boundary conditions}{equation.8}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.2.2}Gap Conductance Model}{8}{subsubsection.2.2.2}\protected@file@percent }
+\newlabel{sec:gap}{{2.2.2}{8}{Gap Conductance Model}{subsubsection.2.2.2}{}}
+\@writefile{toc}{\contentsline {paragraph}{Gas-filled gap (free surface).}{8}{section*.8}\protected@file@percent }
+\newlabel{eq:hgap_gas}{{9}{8}{Gas-filled gap (free surface)}{equation.9}{}}
+\@writefile{toc}{\contentsline {paragraph}{Liquid-filled gap.}{8}{section*.9}\protected@file@percent }
+\newlabel{eq:hgap_liq}{{10}{8}{Liquid-filled gap}{equation.10}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.2.3}Finite-Volume Discretization}{9}{subsubsection.2.2.3}\protected@file@percent }
+\newlabel{eq:heat_ode_fuel}{{11}{9}{Finite-Volume Discretization}{equation.11}{}}
+\newlabel{eq:heat_ode_clad}{{12}{9}{Finite-Volume Discretization}{equation.12}{}}
+\newlabel{eq:Qflux}{{13}{9}{Finite-Volume Discretization}{equation.13}{}}
+\newlabel{eq:outerBC_dirichlet}{{14}{9}{Finite-Volume Discretization}{equation.14}{}}
+\newlabel{eq:outerBC_robin}{{15}{9}{Finite-Volume Discretization}{equation.15}{}}
+\newlabel{eq:Qgap}{{16}{9}{Finite-Volume Discretization}{equation.16}{}}
+\@writefile{toc}{\contentsline {paragraph}{Auxiliary algebraic equations.}{9}{section*.10}\protected@file@percent }
+\newlabel{eq:qqv_ae}{{17}{9}{Auxiliary algebraic equations}{equation.17}{}}
+\newlabel{eq:gap_ae}{{18}{9}{Auxiliary algebraic equations}{equation.18}{}}
+\newlabel{eq:pfc_ae}{{19}{9}{Auxiliary algebraic equations}{equation.19}{}}
+\newlabel{eq:hgap_ae}{{20}{9}{Auxiliary algebraic equations}{equation.20}{}}
+\@writefile{toc}{\contentsline {paragraph}{Equation count.}{9}{section*.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Stress-Strain}{10}{subsection.2.3}\protected@file@percent }
+\newlabel{sec:stress_strain}{{2.3}{10}{Stress-Strain}{subsection.2.3}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.3.1}Differential Form}{10}{subsubsection.2.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Strain-displacement relations.}{10}{section*.12}\protected@file@percent }
+\newlabel{eq:strain_disp}{{23}{10}{Strain-displacement relations}{equation.23}{}}
+\@writefile{toc}{\contentsline {paragraph}{Radial compatibility.}{10}{section*.13}\protected@file@percent }
+\newlabel{eq:compat_cont}{{24}{10}{Radial compatibility}{equation.24}{}}
+\@writefile{toc}{\contentsline {paragraph}{Radial equilibrium.}{10}{section*.14}\protected@file@percent }
+\newlabel{eq:equil_cont}{{25}{10}{Radial equilibrium}{equation.25}{}}
+\@writefile{toc}{\contentsline {paragraph}{Thermal strain.}{10}{section*.15}\protected@file@percent }
+\newlabel{eq:thermal_strain}{{26}{10}{Thermal strain}{equation.26}{}}
+\@writefile{toc}{\contentsline {paragraph}{Thermo-elastic constitutive law (Hooke's law with thermal expansion).}{10}{section*.16}\protected@file@percent }
+\newlabel{eq:hooke_h}{{27}{10}{Thermo-elastic constitutive law (Hooke's law with thermal expansion)}{equation.27}{}}
+\newlabel{eq:hooke_r}{{28}{10}{Thermo-elastic constitutive law (Hooke's law with thermal expansion)}{equation.28}{}}
+\newlabel{eq:hooke_z}{{29}{10}{Thermo-elastic constitutive law (Hooke's law with thermal expansion)}{equation.29}{}}
+\@writefile{toc}{\contentsline {paragraph}{Boundary conditions.}{11}{section*.17}\protected@file@percent }
+\newlabel{eq:axial_balance}{{2.3.1}{11}{Boundary conditions}{section*.17}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.3.2}Finite-Volume Discretization}{11}{subsubsection.2.3.2}\protected@file@percent }
+\newlabel{eq:compat_disc}{{30}{11}{Finite-Volume Discretization}{equation.30}{}}
+\newlabel{eq:equil_disc}{{31}{11}{Finite-Volume Discretization}{equation.31}{}}
+\newlabel{eq:thexp_disc}{{32}{11}{Finite-Volume Discretization}{equation.32}{}}
+\newlabel{eq:mech_neq}{{33}{12}{Finite-Volume Discretization}{equation.33}{}}
+\@writefile{toc}{\contentsline {paragraph}{Gap state machine.}{12}{section*.18}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Equation-of-state summary.}{13}{section*.19}\protected@file@percent }
+\newlabel{eq:neq_total}{{40}{13}{Equation-of-state summary}{equation.40}{}}
+\newlabel{eq:state_vec}{{41}{13}{Equation-of-state summary}{equation.41}{}}
+\abx@aux@refsection{3}{14}
+\abx@aux@cite{3}{hindmarsh2005}
+\abx@aux@segm{3}{0}{hindmarsh2005}
+\abx@aux@cite{3}{hindmarsh2005}
+\abx@aux@segm{3}{0}{hindmarsh2005}
+\newlabel{refsection:3}{{}{14}{\contentsname \@mkboth {\MakeUppercase \contentsname }{\MakeUppercase \contentsname }}{equation.41}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3}Time Integration: SUNDIALS IDA Solver}{14}{section.3}\protected@file@percent }
+\newlabel{sec:sundials}{{3}{14}{Time Integration: SUNDIALS IDA Solver}{section.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Differential-Algebraic Formulation}{14}{subsection.3.1}\protected@file@percent }
+\newlabel{sec:dae_formulation}{{3.1}{14}{Differential-Algebraic Formulation}{subsection.3.1}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.1.1}Residual Form}{14}{subsubsection.3.1.1}\protected@file@percent }
+\newlabel{eq:dae_general}{{42}{14}{Residual Form}{equation.42}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}The IDA Algorithm}{14}{subsection.3.2}\protected@file@percent }
+\newlabel{sec:ida_algorithm}{{3.2}{14}{The IDA Algorithm}{subsection.3.2}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.2.1}Backward Differentiation Formula}{14}{subsubsection.3.2.1}\protected@file@percent }
+\newlabel{subsec:bdf}{{3.2.1}{14}{Backward Differentiation Formula}{subsubsection.3.2.1}{}}
+\newlabel{eq:bdf}{{43}{14}{Backward Differentiation Formula}{equation.43}{}}
+\newlabel{eq:corrector}{{44}{14}{Backward Differentiation Formula}{equation.44}{}}
+\newlabel{eq:be}{{45}{15}{Backward Differentiation Formula}{equation.45}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.2.2}Predictor--Corrector Cycle}{15}{subsubsection.3.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{BDF predictor.}{15}{section*.20}\protected@file@percent }
+\newlabel{eq:predictor}{{46}{15}{BDF predictor}{equation.46}{}}
+\@writefile{toc}{\contentsline {paragraph}{Newton corrector.}{15}{section*.21}\protected@file@percent }
+\newlabel{eq:newton}{{47}{15}{Newton corrector}{equation.47}{}}
+\newlabel{eq:jacobian}{{48}{15}{Newton corrector}{equation.48}{}}
+\newlabel{eq:ydot_update}{{49}{15}{Newton corrector}{equation.49}{}}
+\newlabel{eq:fd_jacobian}{{50}{15}{Newton corrector}{equation.50}{}}
+\@writefile{toc}{\contentsline {paragraph}{Newton convergence criterion.}{15}{section*.22}\protected@file@percent }
+\newlabel{eq:newton_conv}{{51}{15}{Newton convergence criterion}{equation.51}{}}
+\newlabel{eq:wrms}{{52}{15}{Newton convergence criterion}{equation.52}{}}
+\abx@aux@cite{3}{hindmarsh2005}
+\abx@aux@segm{3}{0}{hindmarsh2005}
+\@writefile{toc}{\contentsline {paragraph}{Failure modes and step-size recovery.}{16}{section*.23}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.2.3}Step-Size and Order Control}{16}{subsubsection.3.2.3}\protected@file@percent }
+\newlabel{subsec:step_control}{{3.2.3}{16}{Step-Size and Order Control}{subsubsection.3.2.3}{}}
+\@writefile{toc}{\contentsline {paragraph}{Local truncation error test.}{16}{section*.24}\protected@file@percent }
+\newlabel{eq:lte_test}{{53}{16}{Local truncation error test}{equation.53}{}}
+\newlabel{eq:hreduce}{{54}{16}{Local truncation error test}{equation.54}{}}
+\@writefile{toc}{\contentsline {paragraph}{Minimum step size.}{16}{section*.25}\protected@file@percent }
+\newlabel{eq:hmin}{{55}{16}{Minimum step size}{equation.55}{}}
+\@writefile{toc}{\contentsline {paragraph}{Order selection.}{16}{section*.26}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Maximum step size.}{16}{section*.27}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Root-Finding and Solver Restarts}{17}{subsection.3.3}\protected@file@percent }
+\newlabel{sec:root_finding}{{3.3}{17}{Root-Finding and Solver Restarts}{subsection.3.3}{}}
+\newlabel{eq:root_fns}{{56}{17}{Root-Finding and Solver Restarts}{equation.56}{}}
+\@writefile{toc}{\contentsline {paragraph}{Gap contact-state transitions.}{17}{section*.28}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Non-physical geometry.}{17}{section*.29}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Consistent Initial Conditions}{17}{subsection.3.4}\protected@file@percent }
+\newlabel{sec:calcic}{{3.4}{17}{Consistent Initial Conditions}{subsection.3.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.5}Gap Event Detection and Structural Restart}{18}{subsection.3.5}\protected@file@percent }
+\newlabel{sec:gap_events}{{3.5}{18}{Gap Event Detection and Structural Restart}{subsection.3.5}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.5.1}Root-Finding for Contact-State Transitions}{18}{subsubsection.3.5.1}\protected@file@percent }
+\newlabel{eq:root_function}{{59}{18}{Root-Finding for Contact-State Transitions}{equation.59}{}}
+\@writefile{toc}{\contentsline {paragraph}{Gap closure.}{18}{section*.30}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Gap reopening.}{18}{section*.31}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Why the contact-state flag is the branch selector.}{18}{section*.32}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Root-function sign convention for gap contact-state events. The bracket sign \texttt  {glo[j]} at the left endpoint of the bisection interval determines the reported crossing direction.}}{18}{table.2}\protected@file@percent }
+\newlabel{tab:root_signs}{{2}{18}{Root-function sign convention for gap contact-state events. The bracket sign \texttt {glo[j]} at the left endpoint of the bisection interval determines the reported crossing direction}{table.2}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.5.2}Fixed-Time Forcing Roots}{18}{subsubsection.3.5.2}\protected@file@percent }
+\newlabel{eq:fixed_time_roots}{{60}{18}{Fixed-Time Forcing Roots}{equation.60}{}}
+\gdef \LT@i {\LT@entry 
+    {1}{46.14322pt}\LT@entry 
+    {1}{154.26378pt}\LT@entry 
+    {1}{225.39566pt}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.5.3}Structural Restart After an Event}{19}{subsubsection.3.5.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.6}Tolerances}{19}{subsection.3.6}\protected@file@percent }
+\newlabel{sec:tolerances_fred2}{{3.6}{19}{Tolerances}{subsection.3.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.7}Error Diagnosis and Troubleshooting}{19}{subsection.3.7}\protected@file@percent }
+\newlabel{sec:error_diagnosis}{{3.7}{19}{Error Diagnosis and Troubleshooting}{subsection.3.7}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.7.1}Return Codes from \texttt  {IDASolve}}{19}{subsubsection.3.7.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\texttt  {IDASolve} return codes.}}{20}{table.3}\protected@file@percent }
+\newlabel{tab:retval}{{3}{20}{\texttt {IDASolve} return codes}{table.3}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.7.2}\texttt  {IDA\_ERR\_FAIL} (retval $= -3$): Error Test Failure}{20}{subsubsection.3.7.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{What happened.}{20}{section*.33}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Root causes.}{20}{section*.34}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Remedies.}{20}{section*.35}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.7.3}\texttt  {IDA\_TOO\_MUCH\_WORK} (retval $= -1$): Step Limit Exceeded}{21}{subsubsection.3.7.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.7.4}\texttt  {IDA\_CONV\_FAIL} (retval $= -4$): Newton Convergence Failure}{21}{subsubsection.3.7.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.7.5}\texttt  {IDA\_LSOLVE\_FAIL} (retval $= -7$): Linear Solver Failure}{21}{subsubsection.3.7.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.7.6}\texttt  {IDA\_TOO\_MUCH\_ACC} (retval $= -2$): Accuracy Not Achievable}{21}{subsubsection.3.7.6}\protected@file@percent }
+\abx@aux@refsection{4}{22}
+\abx@aux@cite{4}{philipponneau1992}
+\abx@aux@segm{4}{0}{philipponneau1992}
+\abx@aux@cite{4}{popov2000}
+\abx@aux@segm{4}{0}{popov2000}
+\abx@aux@cite{4}{hagrman1981}
+\abx@aux@segm{4}{0}{hagrman1981}
+\newlabel{refsection:4}{{}{22}{\contentsname \@mkboth {\MakeUppercase \contentsname }{\MakeUppercase \contentsname }}{section*.36}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Introduction}{22}{section.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5}Base Irradiation Physics: MOX Fuel and Cladding (FRED-OX)}{22}{section.5}\protected@file@percent }
+\newlabel{sec:fred_ox}{{5}{22}{Base Irradiation Physics: MOX Fuel and Cladding (FRED-OX)}{section.5}{}}
+\abx@aux@cite{4}{waltar1981}
+\abx@aux@segm{4}{0}{waltar1981}
+\abx@aux@cite{4}{waltar1981}
+\abx@aux@segm{4}{0}{waltar1981}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}MOX fuel thermal properties}{23}{subsection.5.1}\protected@file@percent }
+\newlabel{sec:mox_correlations}{{5.1}{23}{MOX fuel thermal properties}{subsection.5.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Burnup Evolution}{23}{subsection.5.2}\protected@file@percent }
+\newlabel{sec:burnup}{{5.2}{23}{Burnup Evolution}{subsection.5.2}{}}
+\newlabel{eq:burnup_ode}{{62}{23}{Burnup Evolution}{equation.62}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}Fission Gas Generation and Release (Waltar-Reynolds Model)}{23}{subsection.5.3}\protected@file@percent }
+\newlabel{sec:fgr}{{5.3}{23}{Fission Gas Generation and Release (Waltar-Reynolds Model)}{subsection.5.3}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.3.1}Fission Gas Generation}{23}{subsubsection.5.3.1}\protected@file@percent }
+\newlabel{eq:fission_rate}{{63}{23}{Fission Gas Generation}{equation.63}{}}
+\newlabel{eq:fggen_ode}{{64}{23}{Fission Gas Generation}{equation.64}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.3.2}Fission Gas Release}{23}{subsubsection.5.3.2}\protected@file@percent }
+\newlabel{eq:fgr_restructured}{{65}{23}{Fission Gas Release}{equation.65}{}}
+\@writefile{toc}{\contentsline {paragraph}{Central Restructured Zone (CRSZ).}{24}{section*.37}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Unrestructured Zone.}{24}{section*.38}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{As-fabricated outer zone.}{24}{section*.39}\protected@file@percent }
+\newlabel{eq:fgr_split}{{69}{24}{As-fabricated outer zone}{equation.69}{}}
+\abx@aux@cite{4}{lanning1975}
+\abx@aux@segm{4}{0}{lanning1975}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Illustrative Waltar-Reynolds interpretation for MOX fuel: (a) a steep radial temperature profile and corresponding conceptual zone partition (CRSZ, unrestructured, and as-fabricated outer region); (b) representative zone-wise FGR behavior versus radius with a typical radial burnup profile. This figure is schematic and intended to clarify model logic, not to provide calibrated prediction data.}}{25}{figure.2}\protected@file@percent }
+\newlabel{fig:waltar_reynolds_zones}{{2}{25}{Illustrative Waltar-Reynolds interpretation for MOX fuel: (a) a steep radial temperature profile and corresponding conceptual zone partition (CRSZ, unrestructured, and as-fabricated outer region); (b) representative zone-wise FGR behavior versus radius with a typical radial burnup profile. This figure is schematic and intended to clarify model logic, not to provide calibrated prediction data}{figure.2}{}}
+\newlabel{eq:fgrel_ode}{{70}{25}{As-fabricated outer zone}{equation.70}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}Internal Gas Pressure}{25}{subsection.5.4}\protected@file@percent }
+\newlabel{sec:gpres}{{5.4}{25}{Internal Gas Pressure}{subsection.5.4}{}}
+\newlabel{eq:gpres}{{71}{25}{Internal Gas Pressure}{equation.71}{}}
+\newlabel{eq:vt}{{72}{25}{Internal Gas Pressure}{equation.72}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.5}Gap Conductance with Fission Gas Mixture}{25}{subsection.5.5}\protected@file@percent }
+\newlabel{sec:gap_ox}{{5.5}{25}{Gap Conductance with Fission Gas Mixture}{subsection.5.5}{}}
+\newlabel{eq:hgap_ox_modular}{{73}{25}{Gap Conductance with Fission Gas Mixture}{equation.73}{}}
+\newlabel{eq:h_gas}{{74}{25}{Gap Conductance with Fission Gas Mixture}{equation.74}{}}
+\abx@aux@cite{4}{waltar1981}
+\abx@aux@segm{4}{0}{waltar1981}
+\abx@aux@cite{4}{hagrman1981}
+\abx@aux@segm{4}{0}{hagrman1981}
+\abx@aux@cite{4}{philipponneau1992}
+\abx@aux@segm{4}{0}{philipponneau1992}
+\newlabel{eq:gjump}{{75}{26}{Gap Conductance with Fission Gas Mixture}{equation.75}{}}
+\newlabel{eq:kmix}{{76}{26}{Gap Conductance with Fission Gas Mixture}{equation.76}{}}
+\newlabel{eq:k_he2}{{77}{26}{Gap Conductance with Fission Gas Mixture}{equation.77}{}}
+\newlabel{eq:k_kr}{{78}{26}{Gap Conductance with Fission Gas Mixture}{equation.78}{}}
+\newlabel{eq:k_xe}{{79}{26}{Gap Conductance with Fission Gas Mixture}{equation.79}{}}
+\newlabel{eq:h_rad}{{80}{26}{Gap Conductance with Fission Gas Mixture}{equation.80}{}}
+\newlabel{eq:frad}{{81}{26}{Gap Conductance with Fission Gas Mixture}{equation.81}{}}
+\newlabel{eq:h_contact}{{82}{26}{Gap Conductance with Fission Gas Mixture}{equation.82}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.6}Fuel Swelling (MATPRO Model)}{26}{subsection.5.6}\protected@file@percent }
+\newlabel{sec:swelling}{{5.6}{26}{Fuel Swelling (MATPRO Model)}{subsection.5.6}{}}
+\newlabel{eq:swel_solid}{{83}{26}{Fuel Swelling (MATPRO Model)}{equation.83}{}}
+\newlabel{eq:swel_gas}{{84}{26}{Fuel Swelling (MATPRO Model)}{equation.84}{}}
+\abx@aux@cite{4}{luzzi2004}
+\abx@aux@segm{4}{0}{luzzi2004}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.7}MOX Thermal Conductivity (Philipponneau 1992)}{27}{subsection.5.7}\protected@file@percent }
+\newlabel{sec:mox_k}{{5.7}{27}{MOX Thermal Conductivity (Philipponneau 1992)}{subsection.5.7}{}}
+\newlabel{eq:k_mox}{{88}{27}{MOX Thermal Conductivity (Philipponneau 1992)}{equation.88}{}}
+\newlabel{eq:ac_burnup}{{89}{27}{MOX Thermal Conductivity (Philipponneau 1992)}{equation.89}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.8}Cladding: AIM1 Steel with Irradiation Creep}{27}{subsection.5.8}\protected@file@percent }
+\newlabel{sec:aim1}{{5.8}{27}{Cladding: AIM1 Steel with Irradiation Creep}{subsection.5.8}{}}
+\abx@aux@refsection{5}{28}
+\abx@aux@cite{5}{karahan2009}
+\abx@aux@segm{5}{0}{karahan2009}
+\abx@aux@cite{5}{timpanoFredM}
+\abx@aux@segm{5}{0}{timpanoFredM}
+\abx@aux@cite{5}{karahan2009}
+\abx@aux@segm{5}{0}{karahan2009}
+\newlabel{refsection:5}{{}{28}{\contentsname \@mkboth {\MakeUppercase \contentsname }{\MakeUppercase \contentsname }}{section*.40}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {6}Metallic Fuel in Sodium (FRED-M-Na)}{28}{section.6}\protected@file@percent }
+\newlabel{sec:fred_m_na}{{6}{28}{Metallic Fuel in Sodium (FRED-M-Na)}{section.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}Time Integration: Fixed-Step Backward Euler with Explicit Irradiation-Physics Coupling}{28}{subsection.6.1}\protected@file@percent }
+\newlabel{sec:mna_time_integration}{{6.1}{28}{Time Integration: Fixed-Step Backward Euler with Explicit Irradiation-Physics Coupling}{subsection.6.1}{}}
+\@writefile{loa}{\contentsline {algorithm}{\numberline {1}{\ignorespaces FRED-M-Na: one fixed step $t_n \to t_{n+1} = t_n + \Delta t$}}{29}{algorithm.1}\protected@file@percent }
+\newlabel{alg:mna_timestep}{{1}{29}{Time Integration: Fixed-Step Backward Euler with Explicit Irradiation-Physics Coupling}{algorithm.1}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {6.1.1}Implicit backward-Euler solve for the primary DAE unknowns}{29}{subsubsection.6.1.1}\protected@file@percent }
+\newlabel{sec:mna_backward_euler}{{6.1.1}{29}{Implicit backward-Euler solve for the primary DAE unknowns}{subsubsection.6.1.1}{}}
+\newlabel{eq:mna_be}{{92}{29}{Implicit backward-Euler solve for the primary DAE unknowns}{equation.92}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {6.1.2}Explicit forward-Euler update for irradiation physics}{30}{subsubsection.6.1.2}\protected@file@percent }
+\newlabel{sec:mna_forward_euler}{{6.1.2}{30}{Explicit forward-Euler update for irradiation physics}{subsubsection.6.1.2}{}}
+\newlabel{eq:mna_fwd_euler}{{93}{30}{Explicit forward-Euler update for irradiation physics}{equation.93}{}}
+\newlabel{eq:mna_zr_fwd_euler}{{94}{30}{Explicit forward-Euler update for irradiation physics}{equation.94}{}}
+\abx@aux@cite{5}{karahan2009}
+\abx@aux@segm{5}{0}{karahan2009}
+\abx@aux@cite{5}{karahan2009}
+\abx@aux@segm{5}{0}{karahan2009}
+\abx@aux@cite{5}{karahan2009}
+\abx@aux@segm{5}{0}{karahan2009}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {6.1.3}Gap-state detection without a root-finder}{31}{subsubsection.6.1.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}U-Pu-Zr Phase Diagram}{31}{subsection.6.2}\protected@file@percent }
+\newlabel{sec:phase}{{6.2}{31}{U-Pu-Zr Phase Diagram}{subsection.6.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}U-Pu-Zr Thermal Conductivity}{31}{subsection.6.3}\protected@file@percent }
+\newlabel{sec:upuzr_k}{{6.3}{31}{U-Pu-Zr Thermal Conductivity}{subsection.6.3}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {6.3.1}Fresh Fuel (Aydin/Karahan 2009)}{31}{subsubsection.6.3.1}\protected@file@percent }
+\newlabel{eq:k_upuzr}{{95}{31}{Fresh Fuel (Aydin/Karahan 2009)}{equation.95}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {6.3.2}Irradiation-Corrected Conductivity (with Na Infiltration)}{31}{subsubsection.6.3.2}\protected@file@percent }
+\newlabel{eq:pna}{{99}{31}{Irradiation-Corrected Conductivity (with Na Infiltration)}{equation.99}{}}
+\abx@aux@cite{5}{fink1995}
+\abx@aux@segm{5}{0}{fink1995}
+\abx@aux@cite{5}{karahan2009}
+\abx@aux@segm{5}{0}{karahan2009}
+\abx@aux@cite{5}{karahan2009}
+\abx@aux@segm{5}{0}{karahan2009}
+\abx@aux@cite{5}{ogata1999}
+\abx@aux@segm{5}{0}{ogata1999}
+\newlabel{eq:Pc}{{100}{32}{Irradiation-Corrected Conductivity (with Na Infiltration)}{equation.100}{}}
+\newlabel{eq:k_irr}{{101}{32}{Irradiation-Corrected Conductivity (with Na Infiltration)}{equation.101}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {6.3.3}Empirical Burnup Correction (Karahan 2009)}{32}{subsubsection.6.3.3}\protected@file@percent }
+\newlabel{eq:k_bup_corr}{{102}{32}{Empirical Burnup Correction (Karahan 2009)}{equation.102}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.4}Sodium Infiltration}{32}{subsection.6.4}\protected@file@percent }
+\newlabel{sec:sinf}{{6.4}{32}{Sodium Infiltration}{subsection.6.4}{}}
+\newlabel{eq:sinf}{{103}{32}{Sodium Infiltration}{equation.103}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.5}Gap Conductance Specialization in FRED-M-Na}{32}{subsection.6.5}\protected@file@percent }
+\newlabel{sec:gap_mna}{{6.5}{32}{Gap Conductance Specialization in FRED-M-Na}{subsection.6.5}{}}
+\newlabel{eq:hgap_mna_modular}{{104}{32}{Gap Conductance Specialization in FRED-M-Na}{equation.104}{}}
+\newlabel{eq:hgap_mna_medium}{{105}{32}{Gap Conductance Specialization in FRED-M-Na}{equation.105}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.6}Zirconium Redistribution}{32}{subsection.6.6}\protected@file@percent }
+\newlabel{sec:zrdist}{{6.6}{32}{Zirconium Redistribution}{subsection.6.6}{}}
+\newlabel{eq:zrdist}{{106}{32}{Zirconium Redistribution}{equation.106}{}}
+\abx@aux@cite{5}{karahan2009}
+\abx@aux@segm{5}{0}{karahan2009}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.7}Fuel Swelling: Solid Fission Products}{33}{subsection.6.7}\protected@file@percent }
+\newlabel{sec:upuzr_swelling}{{6.7}{33}{Fuel Swelling: Solid Fission Products}{subsection.6.7}{}}
+\newlabel{eq:swel_metallic}{{107}{33}{Fuel Swelling: Solid Fission Products}{equation.107}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.8}Gap-Contact States and Anisotropic Swelling (open/soft/clos)}{33}{subsection.6.8}\protected@file@percent }
+\newlabel{sec:upuzr_gap_states}{{6.8}{33}{Gap-Contact States and Anisotropic Swelling (open/soft/clos)}{subsection.6.8}{}}
+\newlabel{eq:gap_flag}{{108}{33}{Gap-Contact States and Anisotropic Swelling (open/soft/clos)}{equation.108}{}}
+\newlabel{eq:swel_anisotropy}{{109}{33}{Gap-Contact States and Anisotropic Swelling (open/soft/clos)}{equation.109}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.9}Fission Gas Release (Karahan Empirical Model)}{33}{subsection.6.9}\protected@file@percent }
+\newlabel{sec:upuzr_fgr}{{6.9}{33}{Fission Gas Release (Karahan Empirical Model)}{subsection.6.9}{}}
+\abx@aux@cite{5}{karahan2009}
+\abx@aux@segm{5}{0}{karahan2009}
+\abx@aux@cite{5}{timpanoFredM}
+\abx@aux@segm{5}{0}{timpanoFredM}
+\abx@aux@cite{5}{karahan2009}
+\abx@aux@segm{5}{0}{karahan2009}
+\abx@aux@cite{5}{timpanoFredM}
+\abx@aux@segm{5}{0}{timpanoFredM}
+\newlabel{eq:fgr_metallic}{{110}{34}{Fission Gas Release (Karahan Empirical Model)}{equation.110}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.10}Cladding Wastage by Lanthanide Attack}{34}{subsection.6.10}\protected@file@percent }
+\newlabel{sec:wastage}{{6.10}{34}{Cladding Wastage by Lanthanide Attack}{subsection.6.10}{}}
+\newlabel{eq:wastage}{{111}{34}{Cladding Wastage by Lanthanide Attack}{equation.111}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.11}HT-9 Cladding Material}{34}{subsection.6.11}\protected@file@percent }
+\newlabel{sec:ht9}{{6.11}{34}{HT-9 Cladding Material}{subsection.6.11}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.12}Sodium Sub-Channel Coolant Model}{34}{subsection.6.12}\protected@file@percent }
+\newlabel{sec:subchannel_mna}{{6.12}{34}{Sodium Sub-Channel Coolant Model}{subsection.6.12}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {6.12.1}Axial Coolant Energy Balance}{34}{subsubsection.6.12.1}\protected@file@percent }
+\newlabel{eq:subchannel_energy}{{112}{34}{Axial Coolant Energy Balance}{equation.112}{}}
+\abx@aux@cite{5}{mikityuk2009}
+\abx@aux@segm{5}{0}{mikityuk2009}
+\abx@aux@cite{5}{subbotin1962}
+\abx@aux@segm{5}{0}{subbotin1962}
+\@writefile{toc}{\contentsline {paragraph}{Sodium thermophysical properties.}{35}{section*.41}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {6.12.2}Cladding-to-Coolant HTC Correlations}{35}{subsubsection.6.12.2}\protected@file@percent }
+\newlabel{eq:htc_def}{{113}{35}{Cladding-to-Coolant HTC Correlations}{equation.113}{}}
+\@writefile{toc}{\contentsline {paragraph}{Mikityuk (2009) correlation.}{35}{section*.42}\protected@file@percent }
+\newlabel{eq:nu_mikityuk}{{114}{35}{Mikityuk (2009) correlation}{equation.114}{}}
+\@writefile{toc}{\contentsline {paragraph}{Subbotin (Ushakov) correlation.}{35}{section*.43}\protected@file@percent }
+\newlabel{eq:nu_subbotin}{{115}{35}{Subbotin (Ushakov) correlation}{equation.115}{}}
+\@writefile{toc}{\contentsline {paragraph}{Péclet number.}{35}{section*.44}\protected@file@percent }
+\newlabel{eq:peclet}{{116}{35}{Péclet number}{equation.116}{}}
+\abx@aux@read@bbl@mdfivesum{8D136E901B91C2AEDCCC7DD7787A1266}
+\abx@aux@read@bblrerun
+\abx@aux@defaultrefcontext{1}{hindmarsh2005}{none/global//global/global/global}
+\abx@aux@defaultrefcontext{1}{waltar1981}{none/global//global/global/global}
+\abx@aux@defaultrefcontext{1}{hagrman1981}{none/global//global/global/global}
+\abx@aux@defaultrefcontext{1}{karahan2009}{none/global//global/global/global}
+\abx@aux@defaultrefcontext{3}{hindmarsh2005}{none/global//global/global/global}
+\abx@aux@defaultrefcontext{4}{philipponneau1992}{none/global//global/global/global}
+\abx@aux@defaultrefcontext{4}{popov2000}{none/global//global/global/global}
+\abx@aux@defaultrefcontext{4}{hagrman1981}{none/global//global/global/global}
+\abx@aux@defaultrefcontext{4}{waltar1981}{none/global//global/global/global}
+\abx@aux@defaultrefcontext{4}{lanning1975}{none/global//global/global/global}
+\abx@aux@defaultrefcontext{4}{luzzi2004}{none/global//global/global/global}
+\abx@aux@defaultrefcontext{5}{timpanoFredM}{none/global//global/global/global}
+\abx@aux@defaultrefcontext{5}{karahan2009}{none/global//global/global/global}
+\abx@aux@defaultrefcontext{5}{fink1995}{none/global//global/global/global}
+\abx@aux@defaultrefcontext{5}{ogata1999}{none/global//global/global/global}
+\abx@aux@defaultrefcontext{5}{mikityuk2009}{none/global//global/global/global}
+\abx@aux@defaultrefcontext{5}{subbotin1962}{none/global//global/global/global}
+\gdef \@abspage@last{35}

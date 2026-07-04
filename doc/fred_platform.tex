@@ -1,0 +1,434 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{xcolor}
+\geometry{margin=2.5cm}
+
+\title{FRED 2.0 Platform\\[6pt]
+       \large Theory and Developer Manual}
+\author{FRED Development Team}
+\date{\today}
+
+\lstset{
+  basicstyle=\small\ttfamily,
+  keywordstyle=\color{blue},
+  commentstyle=\color{gray},
+  breaklines=true,
+  frame=single
+}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+%===========================================================================
+\section{Introduction}
+%===========================================================================
+
+FRED 2.0 is a modular, open-source platform for developing fuel performance
+codes for nuclear fuel rods.  The platform is written in C\texttt{++} and
+provides a Python interface via \texttt{pybind11} so that all problem
+set-up---geometry, material selection, boundary conditions---is performed
+through Python scripts.  Time integration is performed by the SUNDIALS IDA
+solver (Implicit Differential-Algebraic equations).
+
+The platform targets cylindrical fuel rod geometries with radial and axial
+discretisation.  Three applications are built on top of the platform:
+
+\begin{description}
+  \item[\textbf{FRED-ROD}] Pure thermo-mechanical solver.  No irradiation
+        model.  Suitable for out-of-pile thermal tests, gap-closure studies,
+        and code verification.
+  \item[\textbf{FRED-OX}]  Mixed oxide (MOX) fuel in a sodium-cooled
+        environment, including fission gas release, fuel swelling, and
+        irradiation creep.
+  \item[\textbf{FRED-M-Na}]  Metallic fuel (U-Pu-Zr) in sodium.
+        Includes irradiation-specific phenomena for metallic fuel.
+\end{description}
+
+%===========================================================================
+\section{Code Architecture}
+%===========================================================================
+
+\subsection{Directory Structure}
+
+\begin{lstlisting}
+fred_platform/
+  src/
+    materials/              # Material property interfaces
+      FuelPelletMaterial.hpp     # Abstract base: fuel
+      CladdingMaterial.hpp       # Abstract base: cladding
+      CoolantMaterial.hpp        # Abstract base: coolant
+      uo2/  UO2.hpp/.cpp         # UO2 concrete implementation
+      aim1/ AIM1.hpp/.cpp        # AIM1 cladding
+      na/   Na.hpp/.cpp          # Liquid sodium
+    platform/               # Shared solver components
+      Constants.hpp              # Physical constants
+      FuelRodGeometry.hpp        # Geometry data structure
+      FuelRodState.hpp           # Runtime state (temperatures, stresses)
+      GapModel.hpp/.cpp          # Fuel-clad gap conductance
+      HeatConduction.hpp/.cpp    # Thermal residuals
+      StressStrain.hpp/.cpp      # Mechanical residuals
+    apps/
+      fred_rod/
+        FredRodResiduals.hpp/.cpp  # Full DAE residual (thermal + mechanical)
+        FredRodSolver.hpp/.cpp     # SUNDIALS IDA driver
+        bindings.cpp               # pybind11 Python module
+        main.cpp                   # Stand-alone C++ driver
+  doc/
+    fred_platform.tex       # This document
+  Makefile
+\end{lstlisting}
+
+\subsection{Material Hierarchy}
+
+All material properties are accessed through abstract virtual interfaces:
+
+\begin{itemize}
+  \item \texttt{FuelPelletMaterial} — thermal conductivity, heat capacity,
+        thermal expansion strain, Young's modulus, Poisson's ratio,
+        reference/theoretical density, melting temperature.
+  \item \texttt{CladdingMaterial} — same thermal and elastic properties plus
+        Meyer hardness (for gap solid-contact conductance).
+  \item \texttt{CoolantMaterial} — thermal conductivity, heat capacity,
+        density.
+\end{itemize}
+
+Concrete implementations (\texttt{UO2}, \texttt{AIM1}, \texttt{Na}) inherit
+from these interfaces.  New materials for FRED-OX and FRED-M-Na extend the
+base classes to add irradiation-specific properties (swelling, fission gas,
+creep) without modifying the platform layer.
+
+%===========================================================================
+\section{Mathematical Formulation}
+%===========================================================================
+
+\subsection{Cylindrical Geometry}
+
+The fuel rod is divided into $n_z$ axial layers each of height $\Delta z$.
+Each layer contains $n_f$ fuel radial nodes and $n_c$ cladding radial nodes.
+The centreline of node $i$ is at radius $r_{0,i}$.  The boundary between
+node $i$ and $i+1$ is at $r_{0,i+1/2}$.  Node cross-sectional areas are
+\begin{equation}
+  A_{0,i} = 2\pi r_{0,i} \, \Delta r,
+\end{equation}
+where $\Delta r = \Delta r_f$ for fuel and $\Delta r = \Delta r_c$ for the
+cladding.
+
+\subsection{Heat Conduction}
+
+The transient energy balance for a fuel ring $i$ is
+\begin{equation}
+  \rho \, c_p(T_i) \, A_i \, \frac{dT_i}{dt}
+    = \dot{q}(t) \, A_i + q''_{i-1/2} \cdot 2\pi r_{i-1/2}
+                        - q''_{i+1/2} \cdot 2\pi r_{i+1/2},
+  \label{eq:energy_ode}
+\end{equation}
+where $\dot{q}$ is the volumetric power density [W/m$^3$] and
+\begin{equation}
+  q''_{i+1/2} = k_{i+1/2}(T) \frac{T_i - T_{i+1}}{\Delta r}
+\end{equation}
+is the radial heat flux (positive outward).  The thermal conductivity is
+evaluated at the inter-node temperature $T_{i+1/2} = (T_i + T_{i+1})/2$.
+
+For the cladding rings no power is generated; the same form holds with
+$\dot{q}=0$.
+
+The fuel–clad gap is treated as an additional conductance:
+\begin{equation}
+  q''_{\mathrm{gap}} = h_{\mathrm{gap}} (T_{\mathrm{fo}} - T_{\mathrm{ci}}),
+  \label{eq:gap_flux}
+\end{equation}
+where $T_{\mathrm{fo}}$ and $T_{\mathrm{ci}}$ are the fuel outer and cladding
+inner surface temperatures, and $h_{\mathrm{gap}}$ is the total gap
+conductance [W/(m$^2\cdot$K)].
+
+The outer cladding surface temperature is prescribed as an algebraic
+equation:
+\begin{equation}
+  T_{n_f + n_c}(t) = T_{\mathrm{coolant}}(t).
+\end{equation}
+
+\subsection{Gap Conductance Model}
+
+The total gap conductance is the sum of three contributions (Ross \& Stoute
+model):
+\begin{equation}
+  h_{\mathrm{gap}} = h_{\mathrm{gas}} + h_{\mathrm{rad}} + h_{\mathrm{contact}}.
+  \label{eq:htot}
+\end{equation}
+
+\paragraph{Gas conductance.}
+\begin{equation}
+  h_{\mathrm{gas}} = \frac{k_{\mathrm{gas}}}{\delta_{\mathrm{eff}} + g_j},
+  \label{eq:hgas}
+\end{equation}
+where $k_{\mathrm{gas}}$ is the fill-gas thermal conductivity,
+$\delta_{\mathrm{eff}} = \max(\delta_{\mathrm{gap}},\,r_{\mathrm{eff}})$
+is the effective gap width (bounded below by the combined surface roughness
+$r_{\mathrm{eff}}=\sqrt{r_f^2 + r_c^2}$), and $g_j$ is the temperature-jump
+distance (Lanning–Hann accommodation model):
+\begin{equation}
+  g_j = \frac{0.024688 \, k_{\mathrm{gas}} \sqrt{T_{\mathrm{avg}}}}{p_{\mathrm{gas}} \, \alpha},
+\end{equation}
+with accommodation coefficient $\alpha = 0.425 - 2.3\times10^{-4} \min(T_{\mathrm{avg}}, 1000)$.
+
+Fill-gas thermal conductivity for a He/Ar/Kr/Xe mixture uses the geometric
+mean mixing rule:
+\begin{equation}
+  k_{\mathrm{gas}} = \prod_{s} k_s^{x_s/\sum x_s},
+\end{equation}
+where $x_s$ are the mole fractions and $k_s(T)$ are individual gas conductivities
+fit by power laws (from FRED-OX).
+
+\paragraph{Radiation conductance.}
+\begin{equation}
+  h_{\mathrm{rad}} = \sigma_{\mathrm{SB}} \, F_e
+    \,(T_{\mathrm{fo}}^2 + T_{\mathrm{ci}}^2)(T_{\mathrm{fo}} + T_{\mathrm{ci}}),
+\end{equation}
+where $F_e$ is the radiation view factor between concentric cylinders:
+\begin{equation}
+  F_e = \left[\frac{1}{\varepsilon_f} + \frac{r_{\mathrm{fo}}}{r_{\mathrm{ci}}}
+        \left(\frac{1}{\varepsilon_c} - 1\right)\right]^{-1}.
+\end{equation}
+Surface emissivities: $\varepsilon_f = 0.8$, $\varepsilon_c = 0.9$
+(KIT recommendation, Struwe \& Schikorr 2011).
+
+\paragraph{Solid contact conductance (closed gap only).}
+\begin{equation}
+  h_{\mathrm{contact}} = \frac{33.3 \, k_m \, \Delta p_c}{H_M \sqrt{r_{\mathrm{eff}}}},
+\end{equation}
+where $\Delta p_c = \max(p_{\mathrm{fc}} - p_{\mathrm{gas}}, 0)$ is the net
+contact pressure, $H_M$ is the Meyer hardness of the cladding, and $k_m$ is
+the harmonic mean conductivity of fuel and cladding at the contact temperature.
+
+\subsection{Thermo-Elastic Stress-Strain (FRED-ROD)}
+
+In FRED-ROD no creep, swelling, or irradiation-induced strains are present.
+The total strain is the sum of elastic and thermal contributions only:
+\begin{equation}
+  \varepsilon_{ij} = \varepsilon^{\mathrm{el}}_{ij} + \varepsilon^{\mathrm{th}} \delta_{ij}.
+\end{equation}
+
+\paragraph{Thermal expansion.}
+Linear thermal expansion strain relative to $T_{\mathrm{ref}} = 293.15$ K:
+\begin{equation}
+  \varepsilon^{\mathrm{th}}(T) = \varepsilon_{\mathrm{mat}}(T) - \varepsilon_{\mathrm{mat}}(T_{\mathrm{ref}}).
+\end{equation}
+
+\paragraph{Hooke's law.}  In cylindrical coordinates, for hoop ($h$), radial
+($r$), and axial ($z$) components:
+\begin{align}
+  E \, (\varepsilon_h - \varepsilon^{\mathrm{th}}) &= \sigma_h - \nu(\sigma_r + \sigma_z),\\
+  E \, (\varepsilon_r - \varepsilon^{\mathrm{th}}) &= \sigma_r - \nu(\sigma_h + \sigma_z),\\
+  E \, (\varepsilon_z - \varepsilon^{\mathrm{th}}) &= \sigma_z - \nu(\sigma_h + \sigma_r).
+\end{align}
+The same form applies to both fuel (subscript $f$) and cladding (subscript $c$)
+with their respective moduli.
+
+\paragraph{Strain compatibility.}  Between adjacent rings $i$ and $i+1$:
+\begin{equation}
+  \Delta r \, \bar{\varepsilon}_r + r_i \varepsilon_{h,i} - r_{i+1} \varepsilon_{h,i+1} = 0,
+\end{equation}
+where $\bar{\varepsilon}_r = (\varepsilon_{r,i} + \varepsilon_{r,i+1})/2$.
+
+\paragraph{Radial stress equilibrium.}  Between adjacent rings:
+\begin{equation}
+  \Delta r \, \bar{\sigma}_h + r_i \sigma_{r,i} - r_{i+1} \sigma_{r,i+1} = 0.
+\end{equation}
+
+\paragraph{Boundary conditions (fuel).}
+\begin{itemize}
+  \item \emph{Inner surface (solid pellet):} symmetry, $\sigma_{r,0} = \sigma_{h,0}$.
+  \item \emph{Outer surface, open gap:} $\sigma_{r,n_f-1} = -p_{\mathrm{gas}}$.
+  \item \emph{Outer surface, closed gap:} axial strain continuity, $\varepsilon^f_z = \varepsilon^c_z$.
+  \item \emph{Axial force balance:} $\sum_i A_i \sigma_{z,i} + $ gas/coolant pressure terms = 0.
+\end{itemize}
+
+\paragraph{Boundary conditions (cladding).}
+\begin{itemize}
+  \item \emph{Inner surface, open gap:} $\sigma_{r,0} = -p_{\mathrm{gas}}$.
+  \item \emph{Inner surface, closed gap:} continuity of radial stress with fuel.
+  \item \emph{Outer surface:} $\sigma_{r,n_c-1} = -p_{\mathrm{coolant}}$.
+\end{itemize}
+
+\paragraph{Deformed geometry.}  After solving for strains, the current node
+radii and ring thicknesses are:
+\begin{align}
+  r_i &= r_{0,i}(1 + \varepsilon_{h,i}),\\
+  \Delta r_i &= \Delta r_0 (1 + \bar{\varepsilon}_{r,i}),\\
+  \Delta z &= \Delta z_0 (1 + \varepsilon_z).
+\end{align}
+The fuel outer radius $r_{\mathrm{fo}}$ and cladding inner radius
+$r_{\mathrm{ci}}$ follow from the outermost node radii, giving the
+instantaneous gap width:
+\begin{equation}
+  \delta_{\mathrm{gap}} = r_{\mathrm{ci}} - r_{\mathrm{fo}}.
+\end{equation}
+
+\subsection{DAE System and SUNDIALS IDA}
+
+The complete set of equations per axial layer $j$ is a
+differential-algebraic system (DAE):
+\begin{equation}
+  F(t, \mathbf{y}, \dot{\mathbf{y}}) = \mathbf{0},
+\end{equation}
+where $\mathbf{y}$ collects all state variables.  The total number of
+equations per layer is
+\begin{equation}
+  n_{\mathrm{eq},j} = 6 + 7 n_f + 7 n_c.
+\end{equation}
+For $n_f=5$, $n_c=3$: $n_{\mathrm{eq},j} = 62$.
+
+The system is solved by SUNDIALS IDA (Implicit Differential-Algebraic solver)
+using:
+\begin{itemize}
+  \item BDF (backward differentiation formulae) time integration,
+  \item Newton iteration for the nonlinear system at each time step,
+  \item Dense direct linear solve (LAPACK via \texttt{SUNLinSol\_Dense}).
+\end{itemize}
+
+%===========================================================================
+\section{Material Property Correlations}
+%===========================================================================
+
+\subsection{UO2 Fuel}
+
+\paragraph{Thermal conductivity} (Philipponneau, J.~Nucl.~Mat.~188, 1992,
+at zero Pu content):
+\begin{equation}
+  k(T, \rho, B) = \left[\frac{1}{a_c + 2.493\times10^{-4} T}
+                        + 88.4\times10^{-12} T^3\right]
+                  \frac{1-p}{1+2p},
+\end{equation}
+where $p = 1 - \rho/\rho_{\mathrm{th}}$ is the porosity,
+$\rho_{\mathrm{th}} = 10960$~kg/m$^3$,
+and $a_c = 1.320\sqrt{0.0093} - 0.091 + 3.8\times10^{-3} B/9.33$.
+
+\paragraph{Heat capacity} (Popov et al.\ ORNL/TM-2000/351):
+Tabular data from 300–3100~K, linearly interpolated.
+
+\paragraph{Thermal expansion} (MATPRO):
+\begin{equation}
+  \varepsilon^{\mathrm{th}}(T) = 10^{-5} T - 3\times10^{-3} + 4\times10^{-2} e^{-5000/T}
+                                 - \varepsilon^{\mathrm{th}}(293.15).
+\end{equation}
+
+\paragraph{Young's modulus} (MATPRO):
+\begin{equation}
+  E(T,\rho) = 2.334\times10^{11}\,(1 - 2.752\,p)\,(1 - 1.0915\times10^{-4}\,T) \cdot f_{\mathrm{soft}},
+\end{equation}
+with softening factor $f_{\mathrm{soft}}=\max(0, 1-[(T-T_0)/(T_m-T_0)]^{12})$
+for $T > T_0 = T_m - 150$~K ($T_m = 3120$~K for UO$_2$).
+
+\paragraph{Poisson's ratio} (MATPRO): $\nu = 0.276$.
+
+\subsection{AIM1 Austenitic Stainless Steel}
+
+Source: Luzzi et al., RdS/PAR2013/022.
+
+\begin{align}
+  k(T) &= 13.95 + 0.01163\,(T - 273.15) \quad [\mathrm{W/(m\cdot K)}],\\
+  c_p(T) &= 431.0 + 0.177\,T + 8.72\times10^{-5}\,T^2 \quad [\mathrm{J/(kg\cdot K)}],\\
+  E(T) &= 2.027\times10^{11} - 8.167\times10^{7}\,(T-273.15) \quad [\mathrm{Pa}],\\
+  \nu &= 0.289.
+\end{align}
+
+Thermal expansion strain (integrated from the AIM1 coefficient):
+\begin{equation}
+  \varepsilon^{\mathrm{th}}(T) = (-0.2177\times10^{-2} + 6.735\times10^{-6}\,T
+      + 5.12\times10^{-9}\,T^2 - 2.248\times10^{-12}\,T^3
+      + 3.933\times10^{-16}\,T^4) - \varepsilon^{\mathrm{th}}(293.15).
+\end{equation}
+
+Meyer hardness (SAS4A correlation):
+\begin{equation}
+  H_M(T) = \begin{cases}
+    5.961\times10^9 \, T^{-0.206} & T \le 893.9~\mathrm{K},\\
+    2.750\times10^{28} \, T^{-6.530} & T > 893.9~\mathrm{K}.
+  \end{cases}
+\end{equation}
+
+\subsection{Liquid Sodium Coolant}
+
+Source: Fink \& Leibowitz, ANL/RE-95/2 (1995), valid 371–1156~K.
+
+\begin{align}
+  k(T) &= 124.67 - 0.11381\,T + 5.5226\times10^{-5}\,T^2 - 1.1842\times10^{-8}\,T^3,\\
+  c_p(T) &= 1658.2 - 0.84305\,T + 4.5090\times10^{-4}\,T^2 - 2992658/T^2,\\
+  \rho(T) &= 1011.8 - 0.22054\,T - 1.9226\times10^{-5}\,T^2 + 5.6371\times10^{-9}\,T^3.
+\end{align}
+
+%===========================================================================
+\section{Python Interface}
+%===========================================================================
+
+The Python module \texttt{fred} is built as a shared library
+(\texttt{fred.cpython-*.so}) and exposes the C\texttt{++} objects directly
+in memory via \texttt{pybind11}.  No data copying between Python and C\texttt{++}
+is required during time integration.
+
+\begin{lstlisting}[language=Python]
+import fred
+import numpy as np
+
+# Geometry: 5 fuel nodes, 3 clad nodes, 10 axial layers
+geom = fred.FuelRodGeometry()
+geom.nf, geom.nc, geom.nz = 5, 3, 10
+geom.rfi0 = 0.0;  geom.rfo0 = 4.1e-3
+geom.rci0 = 4.2e-3; geom.rco0 = 4.75e-3
+geom.dz0  = [0.01] * 10
+geom.vgp  = 1e-5
+geom.build()
+
+# Materials
+fuel = fred.UO2(reference_density=10400.0)
+clad = fred.AIM1(reference_density=7900.0)
+
+# Solver
+solver = fred.FredRodSolver(geom, fuel, clad)
+solver.set_power_density_history([0, 100, 1e6], [0, 2e8, 2e8])
+solver.set_coolant_temperature([0, 1e6], [700, 700])
+solver.set_coolant_pressure(0.5)
+solver.set_gas_inventory(1e-5)
+solver.set_initial_temperature(700.0)
+solver.set_tolerances(1e-6, 1e-8)
+
+solver.run(tend=1e6, dtout=1e4)
+
+times = solver.time_points()
+T_peak = solver.peak_fuel_temperature()
+\end{lstlisting}
+
+Python-defined custom materials are also supported: subclass
+\texttt{fred.FuelPelletMaterial} and override the virtual methods.
+
+%===========================================================================
+\section{Build Instructions}
+%===========================================================================
+
+\subsection{Dependencies}
+
+\begin{itemize}
+  \item GCC $\ge$ 11 or Clang $\ge$ 14 (C\texttt{++}17 required)
+  \item SUNDIALS 7.x (IDA, dense linear solver) — already installed at
+        \texttt{/home/chan\_y/Documents/fred/SUNDIALS/INSTDIR}
+  \item Python 3.10+ with pybind11 (\texttt{pip install pybind11})
+\end{itemize}
+
+\subsection{Compilation}
+
+\begin{lstlisting}[language=bash]
+cd fred_platform
+make                # builds fred_rod.x (C++ executable)
+make pymodule       # builds fred.cpython-*.so (Python module)
+\end{lstlisting}
+
+The Python module is placed in \texttt{build/} and can be imported directly
+with \texttt{import sys; sys.path.insert(0, 'build')}.
+
+\end{document}

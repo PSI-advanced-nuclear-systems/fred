@@ -1,0 +1,15 @@
+build/
+third_party/
+*.h5
+__pycache__/
+*.pyc
+.venv/
+.claude/
+scripts/
+doc/developer_guide/latex-code-ref/
+*.log
+*.chk
+*.snapshot
+*.ckpt
+rstfrd*
+examples/fred_m_na/timpano_SAS_benchmark/test_200d/legacy/fred

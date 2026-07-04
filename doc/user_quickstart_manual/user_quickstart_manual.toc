@@ -1,0 +1,76 @@
+\contentsline {section}{\numberline {1}Introduction}{3}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Common workflow}{3}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}Unit conventions}{4}{subsection.1.2}%
+\contentsline {part}{I\hspace {1em}FRED-ROD}{4}{part.1}%
+\contentsline {section}{\numberline {2}Recommended Example Order}{4}{section.2}%
+\contentsline {section}{\numberline {3}Example 1: Heat Conduction Only}{5}{section.3}%
+\contentsline {paragraph}{Geometry setup.}{5}{lstlisting.-2}%
+\contentsline {paragraph}{Physics toggles and boundary conditions.}{5}{lstlisting.-3}%
+\contentsline {paragraph}{Analytical check.}{6}{section*.4}%
+\contentsline {paragraph}{Post-processing.}{6}{lstlisting.-4}%
+\contentsline {section}{\numberline {4}Example 2: Stress-Strain Only}{6}{section.4}%
+\contentsline {paragraph}{Physics and boundary conditions.}{6}{lstlisting.-5}%
+\contentsline {paragraph}{Expected steady-state stress.}{7}{section*.7}%
+\contentsline {paragraph}{Results retrieval.}{7}{lstlisting.-6}%
+\contentsline {section}{\numberline {5}Example 3: Heat Conduction + Stress-Strain}{7}{section.5}%
+\contentsline {paragraph}{Why a slow power ramp?}{7}{lstlisting.-7}%
+\contentsline {paragraph}{Enabling both physics.}{7}{lstlisting.-8}%
+\contentsline {paragraph}{Accessing combined results.}{8}{lstlisting.-9}%
+\contentsline {paragraph}{Expected steady-state behaviour.}{8}{section*.12}%
+\contentsline {section}{\numberline {6}Example 4: Gap Close and Reopen}{8}{section.6}%
+\contentsline {paragraph}{Geometry with a tight as-fabricated gap.}{8}{lstlisting.-10}%
+\contentsline {paragraph}{Multi-phase power history.}{9}{lstlisting.-11}%
+\contentsline {paragraph}{Monitoring gap state.}{9}{lstlisting.-12}%
+\contentsline {paragraph}{What to expect.}{9}{section*.16}%
+\contentsline {section}{\numberline {7}Example 5: Hot Start vs Cold Start}{9}{section.7}%
+\contentsline {paragraph}{Cold vs hot start.}{10}{lstlisting.-14}%
+\contentsline {paragraph}{What to expect.}{10}{section*.18}%
+\contentsline {section}{\numberline {8}Example 6: HDF5 Output}{10}{section.8}%
+\contentsline {paragraph}{Using \texttt {fred\_input} instead of \texttt {fred\_rod}.}{11}{section*.19}%
+\contentsline {paragraph}{Running with HDF5 output.}{11}{lstlisting.-16}%
+\contentsline {paragraph}{Two output modes.}{11}{lstlisting.-17}%
+\contentsline {paragraph}{HDF5 file layout.}{11}{section*.22}%
+\contentsline {paragraph}{Reading results back.}{12}{lstlisting.-19}%
+\contentsline {section}{\numberline {9}Example 7: Restart and Snapshot}{12}{section.9}%
+\contentsline {paragraph}{Script 0: Full reference run.}{12}{section*.24}%
+\contentsline {paragraph}{Script 1: Checkpoint restart.}{13}{section*.25}%
+\contentsline {paragraph}{Script 2: Continuation via snapshot.}{13}{section*.26}%
+\contentsline {section}{\numberline {10}Example 8: Python-Defined Custom Materials}{14}{section.10}%
+\contentsline {subsection}{\numberline {10.1}Subclassing \texttt {FuelPelletMaterial}}{14}{subsection.10.1}%
+\contentsline {subsection}{\numberline {10.2}Subclassing \texttt {CladdingMaterial}}{15}{subsection.10.2}%
+\contentsline {subsection}{\numberline {10.3}Required abstract methods}{15}{subsection.10.3}%
+\contentsline {subsection}{\numberline {10.4}Using the custom materials in a simulation}{15}{subsection.10.4}%
+\contentsline {subsection}{\numberline {10.5}Verifying your material with the built-in API}{16}{subsection.10.5}%
+\contentsline {section}{\numberline {11}Example 9: Advanced Prototyping --- Python to C++}{17}{section.11}%
+\contentsline {subsection}{\numberline {11.1}Physics: fission gas release and gap conductivity}{17}{subsection.11.1}%
+\contentsline {paragraph}{FGR fraction (Waltar-Reynolds, restructured zone):}{17}{section*.27}%
+\contentsline {paragraph}{Molar balance:}{17}{section*.28}%
+\contentsline {paragraph}{Geometric-mean mixture conductivity (FRED.f90 \texttt {gaphtc}):}{17}{section*.29}%
+\contentsline {subsection}{\numberline {11.2}Step 1: Python prototype (\texttt {run\_python.py})}{18}{subsection.11.2}%
+\contentsline {subsection}{\numberline {11.3}Step 2: Compiled C++ equivalent (\texttt {run\_cpp.py})}{19}{subsection.11.3}%
+\contentsline {subsection}{\numberline {11.4}Adding your own compiled gap material}{19}{subsection.11.4}%
+\contentsline {section}{\numberline {12}FRED-ROD API Reference}{20}{section.12}%
+\contentsline {subsection}{\numberline {12.1}Geometry: \texttt {FuelRodGeometry}}{20}{subsection.12.1}%
+\contentsline {subsection}{\numberline {12.2}Built-in materials}{20}{subsection.12.2}%
+\contentsline {subsection}{\numberline {12.3}Solver methods: \texttt {FredRodSolver}}{20}{subsection.12.3}%
+\contentsline {section}{\numberline {13}FRED-ROD Troubleshooting}{21}{section.13}%
+\contentsline {part}{II\hspace {1em}FRED-OX}{22}{part.2}%
+\contentsline {section}{\numberline {14}Recommended Example Order}{22}{section.14}%
+\contentsline {section}{\numberline {15}Example OX-1: Base Irradiation}{22}{section.15}%
+\contentsline {paragraph}{Per-layer boundary conditions.}{23}{lstlisting.-31}%
+\contentsline {paragraph}{New result accessors.}{23}{lstlisting.-32}%
+\contentsline {paragraph}{Legacy comparison at $t=86400$~s.}{23}{section*.32}%
+\contentsline {section}{\numberline {16}Example OX-2: Hot Start vs Cold Start}{24}{section.16}%
+\contentsline {paragraph}{What to expect.}{24}{section*.33}%
+\contentsline {section}{\numberline {17}Example OX-3: HDF5 Output}{24}{section.17}%
+\contentsline {section}{\numberline {18}Example OX-4: Restart (Checkpoint)}{25}{section.18}%
+\contentsline {section}{\numberline {19}Example OX-5: Restart and Snapshot}{25}{section.19}%
+\contentsline {section}{\numberline {20}Example OX-6: ESFR Pin --- Base Irradiation and Transients}{26}{section.20}%
+\contentsline {subsection}{\numberline {20.1}\texttt {base\_irradiation}: 600-day benchmark}{26}{subsection.20.1}%
+\contentsline {subsection}{\numberline {20.2}\texttt {ULOF\_transient}: Unprotected Loss of Flow (43~s)}{26}{subsection.20.2}%
+\contentsline {subsection}{\numberline {20.3}\texttt {UTOP\_transient}: Unprotected Transient Over-Power (1000~s)}{27}{subsection.20.3}%
+\contentsline {section}{\numberline {21}FRED-OX API Reference}{27}{section.21}%
+\contentsline {subsection}{\numberline {21.1}Materials}{27}{subsection.21.1}%
+\contentsline {subsection}{\numberline {21.2}Solver methods: \texttt {FredOxSolver} --- additions over \texttt {FredRodSolver}}{27}{subsection.21.2}%
+\contentsline {section}{\numberline {22}FRED-OX Troubleshooting}{28}{section.22}%
+\contentsline {section}{\numberline {23}Beyond FRED-ROD and FRED-OX: FRED-M-Na}{28}{section.23}%

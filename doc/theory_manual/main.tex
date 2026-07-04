@@ -1,0 +1,71 @@
+\documentclass[11pt,a4paper]{article}
+
+% -- Core packages --
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{textcomp}
+\usepackage{float}
+\usepackage{url}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\setlength{\emergencystretch}{3em}
+
+% -- Bibliography: per-section references --
+\usepackage[
+  backend=biber,
+  style=numeric-comp,
+  sorting=none
+]{biblatex}
+\addbibresource{references.bib}
+
+% -- Layout --
+\geometry{margin=2.5cm}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!60!black,
+  citecolor=green!50!black,
+  urlcolor=blue!70!black
+}
+
+% -- Title --
+\title{%
+  \textbf{FRED 2.0 Platform}\\[8pt]
+  \large Theory Manual\\[4pt]
+  \normalsize Covering FRED-ROD, FRED-OX, and FRED-M-Na
+}
+\author{FRED Development Team\\
+  \small Paul Scherrer Institut / EPFL}
+\date{\today}
+
+% ===========================================================================
+\begin{document}
+% ===========================================================================
+
+\maketitle
+\tableofcontents
+\newpage
+
+% -- Sections (each wrapped in a refsection in the .tex files) --
+\input{introduction}
+\clearpage
+
+\input{thermal_conductivity_stress_strain}
+\clearpage
+
+\input{sundials_solver}
+\clearpage
+
+\input{fred_ox}
+\clearpage
+
+\input{fred_m_na}
+
+% ===========================================================================
+\end{document}
+% ===========================================================================

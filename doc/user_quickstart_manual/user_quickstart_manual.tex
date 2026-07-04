@@ -1,0 +1,1869 @@
+\documentclass[11pt,a4paper]{article}
+
+% -- Core packages --
+\usepackage{amsmath,amssymb}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{tcolorbox}
+\usepackage{textcomp}
+
+% -- Layout --
+\geometry{margin=2.5cm}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!60!black,
+  urlcolor=blue!70!black
+}
+
+% -- Python / shell listings style --
+\definecolor{codebg}{HTML}{F5F5F5}
+\definecolor{codeframe}{HTML}{CCCCCC}
+\definecolor{codegreen}{rgb}{0.0,0.45,0.0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.45,0.0,0.5}
+\definecolor{codeblue}{rgb}{0.0,0.2,0.8}
+
+\lstdefinestyle{pystyle}{
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{codeframe},
+  basicstyle=\small\ttfamily,
+  keywordstyle=\color{codeblue}\bfseries,
+  commentstyle=\color{codegreen}\itshape,
+  stringstyle=\color{codepurple},
+  numberstyle=\tiny\color{codegray},
+  breaklines=true,
+  breakatwhitespace=false,
+  showstringspaces=false,
+  tabsize=4,
+  language=Python,
+  morekeywords={True,False,None},
+  xleftmargin=6pt,
+  xrightmargin=6pt,
+}
+
+\lstset{
+  style=pystyle,
+  literate={µ}{{\textmu}}1
+           {·}{{\textperiodcentered}}1
+           {—}{{---}}1
+           {→}{{$\to$}}1
+           {³}{{$^3$}}1
+}
+
+% -- Info box --
+\tcbuselibrary{skins,breakable}
+\newtcolorbox{infobox}[1][]{
+  enhanced,
+  breakable,
+  colback=blue!5!white,
+  colframe=blue!45!black,
+  fonttitle=\bfseries,
+  title=#1,
+  left=6pt, right=6pt, top=4pt, bottom=4pt,
+}
+\newtcolorbox{warningbox}[1][]{
+  enhanced,
+  breakable,
+  colback=orange!5!white,
+  colframe=orange!70!black,
+  fonttitle=\bfseries,
+  title=#1,
+  left=6pt, right=6pt, top=4pt, bottom=4pt,
+}
+
+% -- Title --
+\title{%
+  \textbf{FRED 2.0}\\[8pt]
+  \large User Quickstart Manual\\[4pt]
+  \normalsize FRED-ROD and FRED-OX --- a step-by-step guide through the example scripts
+}
+\author{FRED Development Team\\
+        \small Paul Scherrer Institut / Advanced Nuclear System group}
+\date{\today}
+
+% ===========================================================================
+\begin{document}
+% ===========================================================================
+
+\maketitle
+\tableofcontents
+\newpage
+
+% ===========================================================================
+\section{Introduction}
+% ===========================================================================
+
+FRED 2.0 is a platform for developing fuel-performance codes.  Core physics
+--- heat conduction and thermo-elastic stress-strain, including
+pellet-cladding gap closing/reopening --- lives in a shared platform layer.
+Applications are built on top of that layer:
+
+\begin{description}
+  \item[\textbf{FRED-ROD}] solves thermal conduction and stress-strain only.
+        No irradiation behaviour is modelled; users supply their own material
+        correlations (including, if desired, their own base-irradiation
+        effects).  This decoupling is deliberate: it keeps FRED-ROD suitable
+        for controlled experimental/verification workflows.
+  \item[\textbf{FRED-OX}] uses the same equations as FRED-ROD and adds
+        oxide-fuel-specific physics on top: empirical base-irradiation
+        correlations for fuel/cladding properties, and fission-gas
+        production, which feeds back into gas pressure and gap conductance.
+  \item[\textbf{FRED-M-Na}] uses the same equations as FRED-ROD and adds
+        metallic-fuel-specific physics (U-Pu-Zr in sodium), including many
+        correlations ported from SAS4A.  See
+        \texttt{examples/fred\_m\_na/} and \texttt{doc/physics\_fred\_m\_na.md};
+        Section~\ref{sec:mna-pointer} of this manual gives a short pointer to
+        its examples.
+\end{description}
+
+\textbf{This manual covers FRED-ROD (Part~\ref{part:rod}) and FRED-OX
+(Part~\ref{part:ox}) in depth}, walking through every example script under
+\texttt{examples/fred\_rod/} and \texttt{examples/fred\_ox/} in a recommended
+learning order, from the simplest case to the most complex.  Each part opens
+with its own ``recommended example order'' list.
+
+\medskip
+\begin{infobox}[Prerequisites]
+  All examples assume the relevant FRED Python module has been compiled and
+  placed in \texttt{fred\_platform/build/}.  Add that directory to your
+  Python path:
+  \begin{lstlisting}[language=bash, style=pystyle]
+# from the fred_platform root
+make pymodule            # builds build/fred_rod.*.so, fred_ox.*.so, ...
+export PYTHONPATH=$PWD/build:$PYTHONPATH
+  \end{lstlisting}
+  Each script also inserts the build path automatically with
+  \texttt{sys.path.insert(0, \ldots)}, so you can run them directly from
+  their own directory without setting \texttt{PYTHONPATH}.
+\end{infobox}
+
+\subsection{Common workflow}
+
+Every FRED-ROD or FRED-OX script follows the same four-step pattern:
+
+\begin{enumerate}
+  \item \textbf{Geometry} --- set the node counts, radii, axial slice
+        heights, roughness, and gas-plenum volume; call \texttt{build()}.
+  \item \textbf{Materials} --- choose or define fuel, cladding, and gap
+        material objects.
+  \item \textbf{Solver setup} --- create a \texttt{FredRodSolver} (ROD) or
+        \texttt{FredOxSolver} (OX), set physics toggles, boundary conditions,
+        tolerances.
+  \item \textbf{Run and post-process} --- call \texttt{run(tend, dtout)};
+        retrieve results with the accessor methods.
+\end{enumerate}
+
+\subsection{Unit conventions}
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Quantity & Unit & Notes \\
+\midrule
+Temperature        & K        & Always Kelvin; subtract 273.15 for \textdegree C \\
+Time               & s        & Seconds \\
+Length / radius    & m        & Metres \\
+Power density      & W/m\textsuperscript{3} & Volumetric heat generation \\
+Pressure / stress  & MPa      & Megapascals \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ===========================================================================
+\part{FRED-ROD}
+\label{part:rod}
+% ===========================================================================
+
+FRED-ROD is the thermo-mechanical application of the FRED 2.0 platform.  It
+solves the coupled heat-conduction and thermo-elastic stress-strain equations
+for a cylindrical fuel rod using the SUNDIALS IDA differential-algebraic
+solver.  No irradiation behaviour is modelled; users add their own material
+models (including, if desired, their own base-irradiation correlations).
+
+\section{Recommended Example Order}
+\label{sec:rod-order}
+
+The example scripts under \texttt{examples/fred\_rod/} are best worked
+through in the following order, progressing from the simplest case to the
+most complex:
+
+\begin{enumerate}
+  \item \textbf{\texttt{heat\_conduction\_only}} --- heat equation alone; no mechanics.
+  \item \textbf{\texttt{stress\_strain\_only}} --- elastic mechanics alone; temperatures fixed.
+  \item \textbf{\texttt{heat\_conduction\_stress\_strain}} --- coupled thermo-elastic run.
+  \item \textbf{\texttt{gapclose\_reopen}} --- gap close and reopen under power cycling.
+  \item \textbf{\texttt{hot\_start\_demo}} --- skipping the transient heat-up with a
+        pseudo-time hot start, and when \emph{not} to use it.
+  \item \textbf{\texttt{hdf5\_output}} --- writing and reading results in HDF5 format.
+  \item \textbf{\texttt{restart\_snapshot}} --- fault-recovery checkpoints and physical-state snapshots.
+  \item \textbf{\texttt{python\_materials}} --- defining custom material correlations in Python.
+  \item \textbf{\texttt{advanced\_prototyping}} --- the Python$\to$C++ prototyping loop for gap materials.
+\end{enumerate}
+
+\begin{infobox}[Why this order?]
+  Examples 1--3 build up the physics one piece at a time (thermal only,
+  mechanical only, then coupled) using the same dummy-material rod, so you
+  can isolate solver behaviour before adding complexity.  Example 4
+  introduces the gap-contact event logic that most real rods exercise.
+  Example 5 (hot start) is easiest to understand \emph{after} Example 3,
+  since it directly replaces the manual power-ramp workaround used there.
+  Examples 6--7 are about persistence and I/O, independent of the underlying
+  physics, so they can be read once you are comfortable with any of the
+  earlier runs. Examples 8--9 are for users who want to extend FRED-ROD with
+  new material correlations, and assume familiarity with Examples 1--3.
+\end{infobox}
+
+% ===========================================================================
+\section{Example 1: Heat Conduction Only}
+\label{sec:hco}
+% ===========================================================================
+
+\textbf{File:} \texttt{examples/fred\_rod/heat\_conduction\_only/run.py}
+
+\medskip
+This is the simplest possible run: heat conduction is enabled and the
+stress-strain solver is disabled.  All mechanical state variables are pinned
+to zero; the only degrees of freedom are the nodal temperatures.
+
+\textbf{Scenario:}
+\begin{itemize}
+  \item Solid dummy fuel pellet and dummy cladding (constant properties).
+  \item Constant volumetric power $q''' = 10^8$~W/m$^3$ applied at $t=0$.
+  \item Constant coolant temperature $T_\text{cool} = 700$~K.
+  \item Simulated for $t_\text{end} = 10$~s (about 30 thermal time constants).
+\end{itemize}
+
+\paragraph{Geometry setup.}
+
+\begin{lstlisting}
+g = fred.FuelRodGeometry()
+g.nf   = 3          # 3 radial fuel nodes
+g.nc   = 2          # 2 radial cladding nodes
+g.nz   = 1          # 1 axial layer
+g.rfi0 = 0.0        # solid pellet (no central void)
+g.rfo0 = 4.2e-3     # outer fuel radius = 4.2 mm
+g.rci0 = 4.3e-3     # inner cladding radius (100 µm as-fabricated gap)
+g.rco0 = 4.9e-3     # outer cladding radius = 4.9 mm
+g.dz0  = [0.10]     # one 10 cm axial slice
+g.vgp  = 1.0e-6     # 1 cm^3 gas plenum
+g.ruff = 5.0e-6     # 5 µm fuel surface roughness
+g.rufc = 5.0e-6     # 5 µm cladding inner roughness
+g.build()
+\end{lstlisting}
+
+The \texttt{nf} and \texttt{nc} fields set the number of radial nodes in the
+fuel and cladding respectively.  With \texttt{nf=3, nc=2} there are 5 unknown
+temperatures per axial layer.  The as-fabricated gap width is
+$r_\text{ci0} - r_\text{fo0} = 100$~µm.
+
+\paragraph{Physics toggles and boundary conditions.}
+
+\begin{lstlisting}
+fuel = fred.DummyFuelPellet()    # k=10 W/mK, rho=10000 kg/m3, cp=100 J/kgK
+clad = fred.DummyCladding()
+gap  = fred.DummyGapMaterial()   # h_gap(T) = 500 + 2.5*T  [W/(m2·K)]
+
+solver = fred.FredRodSolver(g, fuel, clad, gap)
+solver.set_enable_heat_conduction(True)   # thermal ODE active
+solver.set_enable_stress_strain(False)    # mechanics frozen at zero
+
+T0 = 700.0   # K
+solver.set_initial_temperature(T0)
+solver.set_coolant_temperature([0.0, 1e6], [T0, T0])    # constant at T0
+solver.set_power_density_history([0.0, 1e6], [1.0e8, 1.0e8])  # step on at t=0
+
+solver.set_coolant_pressure(5.0)     # MPa (required but not used here)
+solver.set_initial_gas_pressure(0.1) # MPa
+solver.set_tolerances(1e-6, 1e-8)
+\end{lstlisting}
+
+\texttt{set\_coolant\_temperature} prescribes the outer cladding surface
+temperature (Dirichlet boundary condition).  \texttt{set\_power\_density\_history}
+provides the volumetric heat source; values are linearly interpolated between
+the supplied time points.
+
+\paragraph{Analytical check.}
+
+For a solid cylinder the steady-state fuel centreline temperature is:
+\begin{equation}
+  T_\text{cl} = T_\text{cool} + q''' R_f^2 / (4k_f)
+              + q''' R_f^2 \ln(r_\text{ci}/r_\text{fo}) / k_\text{gap-eff}
+              + \ldots
+\end{equation}
+With the constant-property dummy materials the expected centreline rise above
+700~K is approximately $\Delta T \approx 137$~K, giving $T_\text{cl} \approx 837$~K.
+The example prints a comparison table against the legacy FRED Fortran code.
+
+\paragraph{Post-processing.}
+
+\begin{lstlisting}
+times  = solver.time_points()          # [n_steps] s
+T_arr  = solver.temperatures()         # shape (n_steps, nz*(nf+nc))
+T_peak = solver.peak_fuel_temperature()  # [n_steps] K
+
+# Temperature at the innermost fuel node at the final time step:
+T_centre_final = T_arr[-1, 0]
+
+# Temperature at the outer cladding surface:
+T_clad_outer_final = T_arr[-1, nf + nc - 1]
+\end{lstlisting}
+
+The \texttt{temperatures()} array has shape \texttt{(n\_steps, nz*(nf+nc))}.
+For \texttt{nz=1} it collapses to \texttt{(n\_steps, nf+nc)}.  Nodes are
+ordered fuel inner$\to$outer, then cladding inner$\to$outer.
+
+Calling \texttt{set\_enable\_stress\_strain(False)} reduces the DAE to a
+pure ODE system (all thermal equations are differential).  The solver runs
+faster and the IDA initialisation is simpler.  Use this mode whenever
+mechanics are not needed.
+
+
+% ===========================================================================
+\section{Example 2: Stress-Strain Only}
+\label{sec:sso}
+% ===========================================================================
+
+\textbf{File:} \texttt{examples/fred\_rod/stress\_strain\_only/run.py}
+
+\medskip
+Heat conduction is disabled; all temperatures are frozen at the initial
+value \texttt{T0 = 293.15 K} (the reference temperature for thermal expansion,
+so all thermal strains are zero).  Only the thermo-elastic mechanics are
+active.
+
+\textbf{Scenario:}
+\begin{itemize}
+  \item Coolant pressure ramp from 5~MPa to 0.1~MPa over 100~s.
+  \item Internal gas pressure constant at 0.1~MPa.
+  \item As the external compression decreases, the cladding expands outward.
+\end{itemize}
+
+\paragraph{Physics and boundary conditions.}
+
+\begin{lstlisting}
+solver.set_enable_heat_conduction(False)   # temperatures frozen at T0
+solver.set_enable_stress_strain(True)
+
+T0 = 293.15   # K  — reference temperature (zero thermal expansion)
+solver.set_initial_temperature(T0)
+
+# Coolant pressure ramps from 5 MPa down to 0.1 MPa over 100 s
+solver.set_coolant_pressure_history([0.0, 100.0], [5.0, 0.1])
+solver.set_initial_gas_pressure(0.1)   # MPa
+\end{lstlisting}
+
+When heat conduction is disabled, the thermal ODE is replaced by an
+algebraic constraint that pins every node temperature to
+\texttt{T0}.  The stress-strain system is then quasi-static: at each
+output step FRED-ROD solves the mechanical equilibrium equations using
+the current (frozen) temperature distribution and the instantaneous
+pressure boundary conditions.
+
+\paragraph{Expected steady-state stress.}
+
+The thin-wall approximation for the cladding hoop stress under external
+pressure $p_o$ and internal pressure $p_i$ is:
+\begin{equation}
+  \sigma_\theta \approx \frac{p_i r_i - p_o r_o}{r_o - r_i}.
+\end{equation}
+At $t=0$: $\sigma_\theta \approx (0.1 \times 4.3 - 5.0 \times 4.9)/0.6 \approx -40$~MPa
+(compressive under external pressure).  At $t=100$~s: $\sigma_\theta \approx -1$~MPa.
+
+\paragraph{Results retrieval.}
+
+\begin{lstlisting}
+times      = solver.time_points()
+sigh_outer = solver.clad_outer_hoop_stress()  # [n_steps] MPa
+rco        = solver.clad_outer_radius()        # [n_steps] m
+
+delta_rco_um = (rco[-1] - g.rco0) * 1e6   # outer radius change in µm
+\end{lstlisting}
+
+\begin{infobox}[Key learning point]
+  Use \texttt{stress\_strain\_only} to verify the mechanical solver in
+  isolation.  With temperatures fixed at $T_\text{ref}$ all thermal expansion
+  strains vanish, leaving pure elastic deformation under prescribed pressure.
+  This is the easiest state to compare with the Lam\'e analytical solution.
+\end{infobox}
+
+% ===========================================================================
+\section{Example 3: Heat Conduction + Stress-Strain}
+\label{sec:hcss}
+% ===========================================================================
+
+\textbf{File:} \texttt{examples/fred\_rod/heat\_conduction\_stress\_strain/run.py}
+
+\medskip
+Both physics blocks are active simultaneously.  The heat equation generates
+a temperature distribution which drives thermal expansion, while the
+mechanical equilibrium is solved at each output step using the latest
+temperatures.  This is the \emph{operator-split} coupling used in FRED-ROD:
+IDA advances the thermal ODE, and the mechanics are updated after each output
+time.
+
+\textbf{Scenario:}
+\begin{itemize}
+  \item Slow power ramp $0 \to 10^8$~W/m$^3$ over 50~s, then held constant.
+  \item Coolant at 700~K, external pressure 5~MPa.
+  \item Simulated to $t = 200$~s (well past steady state).
+\end{itemize}
+
+\paragraph{Why a slow power ramp?}
+
+\begin{lstlisting}
+# Ramp 0→1e8 W/m3 over 50 s, then hold
+solver.set_power_density_history(
+    [0.0, 50.0, 100.0, 1e6],
+    [0.0, 1.0e8, 1.0e8, 1.0e8])
+\end{lstlisting}
+
+When both heat conduction and stress-strain are active, the IDA initial
+condition calculation (\texttt{IDACalcIC}) must find consistent initial
+derivatives for the coupled system.  A step change in power at $t=0$
+introduces a large discontinuity that can cause \texttt{IDACalcIC} to fail.
+Ramping the power over $\ge 50$~s gives the solver time to build a smooth
+consistent initial state.
+
+\paragraph{Enabling both physics.}
+
+\begin{lstlisting}
+solver.set_enable_heat_conduction(True)
+solver.set_enable_stress_strain(True)
+
+T0 = 700.0   # K
+solver.set_initial_temperature(T0)
+solver.set_coolant_temperature([0.0, 1e6], [T0, T0])
+solver.set_coolant_pressure(5.0)        # MPa
+solver.set_initial_gas_pressure(0.1)    # MPa
+\end{lstlisting}
+
+\paragraph{Accessing combined results.}
+
+\begin{lstlisting}
+T_arr = solver.temperatures()     # (n_steps, nf+nc)  K
+sigh  = solver.clad_outer_hoop_stress()  # (n_steps,)  MPa
+rco   = solver.clad_outer_radius()       # (n_steps,)  m
+
+# Centreline and cladding inner-surface temperatures at each step:
+T_ctr = T_arr[:, 0]          # innermost fuel node
+T_oci = T_arr[:, g.nf]       # innermost cladding node (= clad inner surface)
+\end{lstlisting}
+
+\paragraph{Expected steady-state behaviour.}
+
+\begin{itemize}
+  \item Fuel centreline: $\approx 837$~K (44~K above outer fuel surface).
+  \item Cladding outer radius grows by $\approx 17$--19~µm (thermal expansion
+        from $T_0 \approx 293$~K reference to the cladding operating temperature).
+  \item Hoop stress is compressive ($\approx -28$~MPa) because the external
+        5~MPa coolant pressure dominates over the thermal expansion effect.
+\end{itemize}
+
+\begin{warningbox}[Power-ramp requirement]
+  Always use a slow power ramp (\emph{not} a step at $t=0$) when both heat
+  conduction and stress-strain are enabled.  A 50~s ramp to operating power
+  is sufficient in practice.
+\end{warningbox}
+
+% ===========================================================================
+\section{Example 4: Gap Close and Reopen}
+\label{sec:gcr}
+% ===========================================================================
+
+\textbf{File:} \texttt{examples/fred\_rod/gapclose\_reopen/run.py}
+
+\medskip
+This example exercises the gap-state logic: the fuel and cladding can come
+into physical contact (gap closes) and then separate again (gap reopens).
+Root-finding events in SUNDIALS IDA detect when the gap crosses the
+roughness threshold and automatically switches between the open-gap and
+closed-gap residual formulations.
+
+\textbf{Scenario (three phases):}
+\begin{enumerate}
+  \item \textbf{Phase 1 (0--100~s):} no power; open gap at the as-fabricated
+        width of 15~µm.
+  \item \textbf{Phase 2 (100--600~s):} ramp to $5 \times 10^8$~W/m$^3$,
+        then hold; fuel expands, gap closes.
+  \item \textbf{Phase 3 (600--1500~s):} ramp back to zero power; fuel
+        contracts, gap reopens.
+\end{enumerate}
+
+The as-fabricated gap is deliberately small (15~µm instead of the 100~µm
+in earlier examples) so that gap closure happens at a moderate power level.
+
+\paragraph{Geometry with a tight as-fabricated gap.}
+
+\begin{lstlisting}
+g.rfo0 = 4.2e-3       # m
+g.rci0 = 4.215e-3     # m  — 15 µm as-fabricated gap
+g.ruff = 5.0e-6       # fuel roughness
+g.rufc = 5.0e-6       # cladding roughness
+# contact threshold = ruff + rufc = 10 µm
+\end{lstlisting}
+
+The gap is considered \emph{closed} when the mechanical gap width falls to
+the combined surface roughness ($r_\text{uff} + r_\text{ufc}$).  In the
+closed state the pellet-cladding contact pressure is a free variable and
+the gap constraint is replaced by a no-penetration condition.
+
+\paragraph{Multi-phase power history.}
+
+\begin{lstlisting}
+solver.set_power_density_history(
+    [0.0, 100.0, 200.0, 600.0, 700.0, 1500.0],
+    [0.0,   0.0, 5.0e8, 5.0e8,   0.0,    0.0])
+\end{lstlisting}
+
+\paragraph{Monitoring gap state.}
+
+\begin{lstlisting}
+gap_w = solver.gap_width()          # (n_steps,) m — axial average
+pfc   = solver.contact_pressure()   # (n_steps,) MPa
+rfo   = solver.fuel_outer_radius()  # (n_steps,) m
+rci   = solver.clad_inner_radius()  # (n_steps,) m
+
+# Gap-state classification
+thresh = g.ruff + g.rufc    # contact threshold in m
+is_closed = gap_w <= thresh  # boolean array
+\end{lstlisting}
+
+Also available in the raw IDA state vector:
+
+\begin{lstlisting}
+y_out = solver.y_out()     # (n_steps, neq)
+gpres = y_out[:, 0]        # gas pressure (MPa) — first DAE variable
+\end{lstlisting}
+
+\paragraph{What to expect.}
+
+\begin{itemize}
+  \item \textbf{Phase 1:} gap $\approx 13.8$~µm (as-fabricated gap minus
+        initial thermal expansion at 700~K).
+  \item \textbf{Gap closure at $\approx 150$~s:} fuel expansion exceeds the
+        15~µm as-fabricated gap; contact pressure jumps from 0 to $\approx 19$~MPa.
+  \item \textbf{Gap reopening at $\approx 700$~s:} power removed; fuel
+        contracts; gas pressure exceeds contact pressure; gap reopens.
+  \item Results compare closely with the legacy FRED Fortran code
+        ($|\Delta\text{gap}| < 0.2$~µm, $|\Delta\text{pfc}| < 0.1$~MPa over
+        the whole 1500~s run).
+\end{itemize}
+
+\begin{infobox}[Key learning point]
+  The gas pressure evolves via the ideal-gas DAE (included automatically
+  in the IDA state vector).  It rises with temperature during Phase~2
+  and drops when the fuel cools.  The gap reopens when the gas pressure
+  exceeds the contact pressure, not simply when the fuel contracts below
+  the cladding radius.
+\end{infobox}
+
+% ===========================================================================
+\section{Example 5: Hot Start vs Cold Start}
+\label{sec:hot-rod}
+% ===========================================================================
+
+\textbf{File:} \texttt{examples/fred\_rod/hot\_start\_demo/run.py}
+
+\medskip
+Every earlier example began at a low reference temperature and let the real
+transient carry the rod up to its operating (steady-state) condition ---
+either directly (Example 1) or via a manual power ramp used purely to keep
+\texttt{IDACalcIC} well-behaved (Example 3).  \texttt{set\_hot\_start(True)}
+replaces that workaround: the solver runs a pseudo-time pre-march at the
+$t=0$ boundary conditions \emph{before} the real time loop starts, converges
+to steady state, then re-anchors $t=0$ at that converged state.  The first
+logged output point is then already at operating conditions.
+
+\paragraph{Cold vs hot start.}
+
+\begin{lstlisting}
+def make_solver(hot_start: bool):
+    # ... identical geometry/materials/BCs each time (solver state is not
+    # resettable after run(), so build a fresh solver per call) ...
+    solver = fred.FredRodSolver(g, fuel, clad, gap)
+    solver.set_enable_heat_conduction(True)
+    solver.set_enable_stress_strain(True)
+    solver.set_hot_start(hot_start)          # False = cold start (default)
+    solver.set_power_density_history([0.0, 1e6], [1.0e8, 1.0e8])  # full power at t=0
+    return solver
+
+s_cold = make_solver(hot_start=False)
+s_cold.run(tend=200.0, dtout=5.0)
+
+s_hot = make_solver(hot_start=True)
+s_hot.run(tend=200.0, dtout=5.0)
+\end{lstlisting}
+
+Both runs use the identical instantaneous full-power step at $t=0$ (no
+manual ramp needed --- the hot-start pseudo-time march, and IDA's own
+initial-condition solve for a literal cold jump, both handle the resulting
+residual imbalance without difficulty for this rod).
+
+\paragraph{What to expect.}
+
+\begin{itemize}
+  \item \textbf{Cold run:} starts at $T_0 = 293.15$~K, rises to the
+        $\approx 832.4$~K steady-state centreline temperature by
+        $t \approx 15$~s.
+  \item \textbf{Hot run:} already at $\approx 832.4$~K at $t=0$; the maximum
+        deviation from that value over the full 200~s run is
+        $\lesssim 2\times 10^{-7}$~K --- i.e.\ ``no change'', confirming the
+        pre-march genuinely found the same steady state the cold run
+        converges to.
+\end{itemize}
+
+\begin{warningbox}[When \emph{not} to use hot start]
+  \texttt{heat\_conduction\_only} (Example 1) exists specifically to show the
+  \emph{transient} heat-up over several thermal time constants --- enabling
+  hot start there would erase the behaviour the example demonstrates.  More
+  generally, do not use hot start for any example whose purpose is to
+  observe a startup transient, a gap-closure event under power cycling
+  (Example 4), or a restart/checkpoint comparison against a known reference
+  trajectory (Examples 6--7): hot start changes the $t=0$ state itself, so it
+  is only appropriate when steady state \emph{before} the interesting
+  behaviour begins is what you want as your starting point.
+\end{warningbox}
+
+\begin{infobox}[Key learning point]
+  Hot start is a numerical convenience, not new physics: FRED-ROD has no
+  irradiation state to freeze during the pre-march (unlike FRED-OX/FRED-M-Na,
+  Section~\ref{sec:hot-ox}, where irradiation physics is explicitly disabled
+  during the march).  Use it whenever an example's own transient is not the
+  point, to avoid burning simulated time (and, for stiffer coupled
+  thermo-mechanical runs, solver robustness) on a ramp-up you do not care
+  about.
+\end{infobox}
+
+% ===========================================================================
+\section{Example 6: HDF5 Output}
+\label{sec:hdf5}
+% ===========================================================================
+
+\textbf{File:} \texttt{examples/fred\_rod/hdf5\_output/run.py}
+
+\medskip
+This example demonstrates how to write results to an HDF5 file using the
+\texttt{fred\_input} / \texttt{fred\_output} helper modules (located in
+\texttt{fred\_platform/python/}) and how to read them back for post-processing.
+
+\paragraph{Using \texttt{fred\_input} instead of \texttt{fred\_rod}.}
+
+For scripts that write HDF5 output, import the validated Python wrapper:
+
+\begin{lstlisting}
+import fred_input as fred   # validated wrapper; drop-in replacement for fred_rod
+import fred_output as fo    # HDF5 read/write utilities
+\end{lstlisting}
+
+\texttt{fred\_input} re-exports all the same classes (\texttt{FuelRodGeometry},
+\texttt{MOX}, \texttt{T91}, \texttt{He}, \texttt{FredRodSolver}, \ldots) but
+validates all inputs in Python before forwarding them to the C++ layer, giving
+clearer error messages.
+
+\paragraph{Running with HDF5 output.}
+
+\begin{lstlisting}
+solver.run(tend=1000.0, dtout=50.0, output_file='results.h5')
+\end{lstlisting}
+
+The \texttt{output\_file} argument triggers \texttt{fred\_output.write\_results\_h5()}
+immediately after \texttt{run()} completes.  All results (temperatures,
+mechanical state, IDA restart vectors) are written to the specified HDF5 file.
+
+\paragraph{Two output modes.}
+
+\begin{lstlisting}
+# Mode 1: dtout mode — results at every multiple of dtout
+solver.run(tend=1000.0, dtout=50.0, output_file='results.h5')
+
+# Mode 2: all_steps mode — results at every internal IDA step
+solver2.run(tend=100.0, dtout=100.0, output_file='debug.h5', all_steps=True)
+\end{lstlisting}
+
+\texttt{all\_steps=True} records every adaptive time step taken by IDA, which
+can be hundreds or thousands of points per second of simulated time.  This
+mode is useful for diagnosing solver behaviour but produces large files.
+
+\paragraph{HDF5 file layout.}
+
+The file written by \texttt{write\_results\_h5()} has the following structure:
+
+\begin{lstlisting}[language=bash]
+results.h5
+  /metadata          -- attributes: app, nz, nf, nc, n_steps, all_steps
+  /time              -- [n_steps]                    seconds
+  /thermal/
+      T              -- [n_steps, nz, nf+nc]         K
+      peak_T_fuel    -- [n_steps]                    K
+      gap_width      -- [n_steps]                    m  (axial avg)
+  /mechanical/
+      pfc            -- [n_steps]                    MPa
+      rfo            -- [n_steps]                    m
+      rci            -- [n_steps]                    m
+      rco            -- [n_steps]                    m
+      sigh_outer     -- [n_steps]                    MPa
+  /restart/
+      y              -- [n_steps, neq]               IDA state
+      yp             -- [n_steps, neq]               IDA derivatives
+\end{lstlisting}
+
+\paragraph{Reading results back.}
+
+\begin{lstlisting}
+r = fo.read_results_h5('results.h5')
+
+# Metadata
+nz, nf, nc = r['nz'], r['nf'], r['nc']
+
+# Arrays
+times  = r['time']           # [n_steps] s
+T      = r['T']              # [n_steps, nz, nf+nc] K
+peak_T = r['peak_T_fuel']    # [n_steps] K
+gap_w  = r['gap_width']      # [n_steps] m
+pfc    = r['pfc']            # [n_steps] MPa
+sigh   = r['sigh_outer']     # [n_steps] MPa
+
+# Access radial temperature profile at final time, first axial layer:
+T_profile = T[-1, 0, :]      # shape (nf+nc,)
+T_fuel    = T[-1, 0, :nf]    # fuel nodes
+T_clad    = T[-1, 0, nf:]    # cladding nodes
+
+# IDA restart vectors (used by load_checkpoint / load_snapshot):
+y_last  = r['restart_y'][-1, :]   # y-vector at final step
+yp_last = r['restart_yp'][-1, :]
+\end{lstlisting}
+
+\begin{infobox}[Key learning point]
+  Storing the IDA \texttt{y}/\texttt{yp} vectors in the HDF5 file enables
+  post-run analysis: you can reconstruct the solver at any saved output time
+  and inspect or restart from that state.  The \texttt{restart\_snapshot}
+  example (Section~\ref{sec:rs}) shows a more structured API for this.
+\end{infobox}
+
+% ===========================================================================
+\section{Example 7: Restart and Snapshot}
+\label{sec:rs}
+% ===========================================================================
+
+\textbf{File:} \texttt{examples/fred\_rod/restart\_snapshot/}
+
+\medskip
+This example contains three scripts that illustrate two complementary
+persistence mechanisms:
+
+\begin{description}
+  \item[Checkpoint] A single overwriting file for fault recovery.  Simulation
+        time is preserved on reload.
+  \item[Snapshot] A permanent restart-state file.  Physical state (temperatures,
+        strains, gap) is preserved but simulation time is reset to~0.  Used to
+        start a new transient from a pre-conditioned fuel state.
+\end{description}
+
+\paragraph{Script 0: Full reference run.}
+
+\texttt{0\_full\_run.py} runs the complete simulation from $t=0$ to $t=5000$~s
+with both checkpointing and snapshot saving enabled.
+
+\begin{lstlisting}
+WORK_DIR = 'ckpt'
+tend   = 5000.0  # s
+t_half = 3000.0  # s — mid-point snapshot
+
+s = make_solver()
+
+# Enable fault-recovery checkpoint (overwritten every dtout)
+s.set_checkpoint_prefix(os.path.join(WORK_DIR, 'rod'))
+
+# Save a snapshot at t_half; the final snapshot is always saved automatically
+s.set_snapshot_prefix(os.path.join(WORK_DIR, 'rod'),
+                      snapshot_times=[t_half])
+
+s.run(tend, dtout=1000.0)
+\end{lstlisting}
+
+After running, the \texttt{ckpt/} directory contains:
+\begin{lstlisting}[language=bash]
+rod_checkpoint.chk     # fault-recovery checkpoint (overwritten at each dtout)
+rod_frame1.snapshot    # snapshot saved at t_half = 3000 s
+rod_frame2.snapshot    # snapshot saved at tend  = 5000 s  (automatic)
+ref_times.npy          # reference output times (for comparison in scripts 1 & 2)
+ref_T.npy              # reference peak fuel temperatures
+ref_gap.npy            # reference gap widths
+\end{lstlisting}
+
+\paragraph{Script 1: Checkpoint restart.}
+
+\texttt{1\_checkpoint\_restart.py} demonstrates fault recovery.  It simulates a
+crash at \texttt{t\_half} by running only to that point, then reloads the
+checkpoint and continues to \texttt{tend}.
+
+\begin{lstlisting}
+# Step A: partial run 0 → t_half (crashes here)
+s_partial = make_solver()
+s_partial.set_checkpoint_prefix(ckpt_prefix)
+s_partial.run(t_half, dtout)
+
+# Step B: reload checkpoint and continue to tend
+s_restart = make_solver()
+s_restart.set_checkpoint_prefix(ckpt_prefix)
+s_restart.load_checkpoint(ckpt_file)
+print(f"Restart time: {s_restart.restart_time():.0f} s")
+
+s_restart.run(tend, dtout)
+\end{lstlisting}
+
+\texttt{restart\_time()} returns the time from which the simulation will
+continue ($= t_\text{half}$ in this case).  Results from the restarted run
+match the reference run to within $10^{-6}$ relative error on all quantities.
+
+\paragraph{Script 2: Continuation via snapshot.}
+
+\texttt{2\_continuation.py} demonstrates the physical-state snapshot for a
+two-phase simulation: an ``irradiation'' phase followed by a ``transient''
+phase with fresh time coordinates.
+
+\begin{lstlisting}
+# Phase 1: irradiation, 0 → t_half
+s1 = make_solver()
+s1.set_snapshot_prefix(snap_prefix)   # saves rod_frame1.snapshot at end
+s1.run(t_half, dtout)
+
+# Phase 2: fresh start from the irradiated state
+s2 = make_solver(t_end=t_phase2)
+s2.load_snapshot(snap_file)
+print(f"restart_time = {s2.restart_time():.1f} s")  # prints 0.0 — time reset!
+
+s2.run(t_phase2, dtout)
+
+# Stitch results: Phase 2 times are offset by t_half for plotting
+t_combined = np.concatenate([t1, t2[1:] + t_half])
+\end{lstlisting}
+
+The key difference between checkpoint and snapshot is the time-reset:
+\begin{itemize}
+  \item \texttt{load\_checkpoint()} $\to$ \texttt{restart\_time()} returns
+        the saved physical time; the run continues from there.
+  \item \texttt{load\_snapshot()} $\to$ \texttt{restart\_time()} returns
+        $0.0$; the run restarts from $t=0$ with the pre-irradiated fuel state.
+\end{itemize}
+
+\begin{infobox}[Key learning point]
+  Snapshots are the FRED-ROD mechanism for multi-stage simulations: you can
+  build up a library of pre-conditioned fuel states (different burnup levels,
+  gap sizes, strain states) and quickly start transient calculations from
+  each one without re-running the irradiation phase.
+\end{infobox}
+
+% ===========================================================================
+\section{Example 8: Python-Defined Custom Materials}
+\label{sec:pymat}
+% ===========================================================================
+
+\textbf{File:} \texttt{examples/fred\_rod/python\_materials/run.py}
+
+\medskip
+FRED-ROD exposes its abstract material interfaces to Python via
+\texttt{pybind11} trampoline classes.  Any class that inherits from
+\texttt{fred.FuelPelletMaterial} or \texttt{fred.CladdingMaterial} and
+overrides the required methods can be passed directly to
+\texttt{FredRodSolver}.  No C++ recompilation is needed.
+
+This is the recommended approach for rapid prototyping of new material
+correlations before promoting them to a permanent C++ implementation.
+
+\subsection{Subclassing \texttt{FuelPelletMaterial}}
+
+\begin{lstlisting}
+import fred_rod as fred
+
+T_REF = 293.15   # K — reference temperature for thermal expansion
+
+class GenericOxideFuel(fred.FuelPelletMaterial):
+    """
+    Simplified oxide fuel with analytic correlations.
+    All units follow the FRED convention (K, MPa, kg/m3, W/mK, J/kgK).
+    """
+
+    def thermalConductivity(self, T):
+        """k(T) = 1/(A + B*T) + C*T^3  [W/(m·K)]"""
+        A, B, C = 0.045, 2.8e-4, 5.6e-11
+        return 1.0 / (A + B * T) + C * T**3
+
+    def heatCapacity(self, T):
+        """cp(T) = 260 + 0.10*T  [J/(kg·K)]"""
+        return 260.0 + 0.10 * T
+
+    def thermalExpansionStrain(self, T):
+        """Linear CTE = 1e-5 /K"""
+        return 1.0e-5 * (T - T_REF)
+
+    def youngsModulus(self, T, density):
+        """E0 = 200 GPa, linear softening  [MPa]"""
+        return max(1.0e4, 2.0e5 * (1.0 - 1.5e-4 * (T - T_REF)))
+
+    def poissonRatio(self):
+        return 0.30
+
+    def referenceDensity(self):
+        return 10500.0    # kg/m³  (as-fabricated, ~95.8% TD)
+
+    def theoreticalDensity(self):
+        return 10960.0    # kg/m³
+
+    def meltingTemperature(self):
+        return 3100.0     # K
+\end{lstlisting}
+
+The \texttt{thermalConductivity(T)} form
+$k = 1/(A + BT) + CT^3$ is a standard two-term expression for oxide ceramics:
+the first term captures phonon scattering (decreasing with temperature) and
+the second term captures the small-polaron contribution (increasing with
+temperature).
+
+\subsection{Subclassing \texttt{CladdingMaterial}}
+
+\begin{lstlisting}
+class GenericSteelClad(fred.CladdingMaterial):
+
+    def thermalConductivity(self, T):
+        """k(T) = 23.5 + 0.005*(T - 273.15)  [W/(m·K)]"""
+        return 23.5 + 0.005 * (T - 273.15)
+
+    def heatCapacity(self, T):
+        """cp(T) = 480 + 0.12*T  [J/(kg·K)]"""
+        return 480.0 + 0.12 * T
+
+    def thermalExpansionStrain(self, T):
+        """CTE = 11.5e-6 /K"""
+        return 11.5e-6 * (T - T_REF)
+
+    def youngsModulus(self, T):
+        """Linear softening from 200 GPa  [MPa]"""
+        return max(1.0e4, 2.0e5 - 60.0 * (T - T_REF))
+
+    def poissonRatio(self):
+        return 0.30
+
+    def meyerHardness(self, T):
+        """H_M(T) = 5e9 * T^(-0.2)  [Pa]"""
+        return 5.0e9 * T**(-0.2)
+
+    def referenceDensity(self):
+        return 7800.0   # kg/m³
+\end{lstlisting}
+
+Note that \texttt{CladdingMaterial.youngsModulus(T)} takes only temperature
+(no density), whereas \texttt{FuelPelletMaterial.youngsModulus(T, density)}
+takes both (porosity affects the fuel modulus).  \texttt{meyerHardness(T)}
+is used in the Ross--Stoute solid contact conductance model when the gap is
+closed.
+
+\subsection{Required abstract methods}
+
+Table~\ref{tab:abstract} lists every method that \emph{must} be overridden.
+FRED will raise a \texttt{RuntimeError} if any method is not implemented.
+
+\begin{table}[h]
+\centering
+\caption{Abstract methods that must be implemented in Python subclasses.}
+\label{tab:abstract}
+\begin{tabular}{lll}
+\toprule
+Class & Method & Returns \\
+\midrule
+\multirow{8}{*}{\texttt{FuelPelletMaterial}}
+  & \texttt{thermalConductivity(T)}       & W/(m$\cdot$K) \\
+  & \texttt{heatCapacity(T)}              & J/(kg$\cdot$K) \\
+  & \texttt{thermalExpansionStrain(T)}    & --- (strain, zero at $T_\text{ref}$) \\
+  & \texttt{youngsModulus(T, density)}    & MPa \\
+  & \texttt{poissonRatio()}               & --- \\
+  & \texttt{referenceDensity()}           & kg/m$^3$ \\
+  & \texttt{theoreticalDensity()}         & kg/m$^3$ \\
+  & \texttt{meltingTemperature()}         & K \\
+\midrule
+\multirow{7}{*}{\texttt{CladdingMaterial}}
+  & \texttt{thermalConductivity(T)}       & W/(m$\cdot$K) \\
+  & \texttt{heatCapacity(T)}             & J/(kg$\cdot$K) \\
+  & \texttt{thermalExpansionStrain(T)}   & --- \\
+  & \texttt{youngsModulus(T)}            & MPa \\
+  & \texttt{poissonRatio()}              & --- \\
+  & \texttt{meyerHardness(T)}           & Pa \\
+  & \texttt{referenceDensity()}         & kg/m$^3$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Using the custom materials in a simulation}
+
+\begin{lstlisting}
+fuel = GenericOxideFuel()
+clad = GenericSteelClad()
+gap  = fred.DummyGapMaterial()
+
+solver = fred.FredRodSolver(g, fuel, clad, gap)  # standard API
+solver.set_enable_heat_conduction(True)
+solver.set_enable_stress_strain(True)
+
+# ... set BCs and run as usual ...
+solver.run(tend=1000.0, dtout=100.0)
+\end{lstlisting}
+
+There is no difference in how \texttt{FredRodSolver} is used: the Python
+objects are polymorphically identical to the built-in C++ materials from the
+solver's perspective.
+
+\subsection{Verifying your material with the built-in API}
+
+You can call the material methods directly from Python to verify they are
+correct before running a full simulation:
+
+\begin{lstlisting}
+fuel = GenericOxideFuel()
+
+for T in [400, 700, 1000, 1400]:
+    k  = fuel.thermal_conductivity(T)
+    cp = fuel.heat_capacity(T)
+    print(f"T={T:4d} K: k={k:.3f} W/mK, cp={cp:.1f} J/kgK")
+\end{lstlisting}
+
+\begin{warningbox}[Python call overhead]
+  Each Python material method is called by the C++ solver once per radial
+  node per Newton iteration per time step.  For a run with thousands of time
+  steps and fine meshes this can introduce measurable overhead compared to a
+  compiled C++ material.  Once a correlation is validated, implement it in
+  C++ and add pybind11 bindings following the pattern in
+  \texttt{src/apps/fred\_rod/fuelpelletmaterial/UO2.hpp/.cpp} and
+  \texttt{bindings.cpp}.
+\end{warningbox}
+
+% ===========================================================================
+\section{Example 9: Advanced Prototyping --- Python to C++}
+\label{sec:proto}
+% ===========================================================================
+
+\textbf{Files:} \texttt{examples/fred\_rod/advanced\_prototyping/}
+
+\medskip
+Section~\ref{sec:pymat} showed how to prototype fuel and cladding materials in
+Python.  The same mechanism applies to gap materials via \texttt{fred.GapMaterial}.
+This example uses a physically motivated model --- a burnup-dependent He/Kr/Xe
+gap conductivity --- to demonstrate a two-step development loop:
+
+\begin{enumerate}
+  \item \textbf{Step 1} (\texttt{run\_python.py}): implement the model as a
+        Python subclass.  No rebuild required; changes take effect immediately.
+  \item \textbf{Step 2} (\texttt{run\_cpp.py}): use the compiled C++ equivalent
+        \texttt{fred.HeKrXe}.  Results are numerically identical; C++ removes
+        Python call overhead in the inner solver loop.
+\end{enumerate}
+
+\subsection{Physics: fission gas release and gap conductivity}
+
+Fresh fuel pins are filled with helium (excellent thermal conductor,
+$k_\text{He} \approx 0.27$~W/mK at 700~K).  During irradiation, xenon and
+krypton --- fission products with conductivities 10--20$\times$ lower than
+helium --- are released into the gap gas.  Even a moderate fission gas
+release (FGR) fraction significantly raises the fuel temperature.
+
+The model implemented here uses three steps:
+
+\paragraph{FGR fraction (Waltar-Reynolds, restructured zone):}
+\begin{align}
+  B_\text{MWd} &= B_\text{at\%} \times 9.4
+  \qquad (1\,\text{at\%} \approx 9.4\,\text{MWd/kgHM}) \notag\\
+  \text{FGR} &= \max\!\left(0,\; 1 - \frac{4.7}{B_\text{MWd}}
+                \left(1 - e^{-B_\text{MWd}/5.9}\right)\right)
+\end{align}
+
+\paragraph{Molar balance:}
+\begin{align}
+  n_{\text{He},0} &= \frac{P_\text{fill} V_\text{free}}{RT_\text{ref}}
+  \quad\approx 6.15\times10^{-5}\,\text{mol}
+  \quad (P=0.1\,\text{MPa},\; V=1.5\,\text{cm}^3,\; T=293\,\text{K})
+  \notag\\
+  n_\text{FG} &= \text{FGR} \times 0.25 \times
+                \frac{B_\text{at\%}}{100} \times \frac{m_\text{fuel}}{M_\text{HM}}
+  \notag\\
+  y_\text{He} &= (n_{\text{He},0} + 0.0385\,n_\text{FG})\;/\;n_\text{total}
+  \notag\\
+  y_\text{Kr} &= 0.0769\,n_\text{FG}\;/\;n_\text{total},
+  \qquad
+  y_\text{Xe} = 0.8846\,n_\text{FG}\;/\;n_\text{total}
+\end{align}
+
+\paragraph{Geometric-mean mixture conductivity (FRED.f90 \texttt{gaphtc}):}
+\begin{equation}
+  k_\text{mix}(T) = k_\text{He}^{y_\text{He}}\;
+                    k_\text{Kr}^{y_\text{Kr}}\;
+                    k_\text{Xe}^{y_\text{Xe}},
+  \qquad k_i(T) = A_i\, T^{B_i}
+\end{equation}
+
+\noindent Typical values at 700~K and several burnup levels:
+
+\begin{center}
+\begin{tabular}{rrrrrr}
+\toprule
+$B$ [at\%] & FGR [\%] & $y_\text{He}$ & $y_\text{Kr}$ & $y_\text{Xe}$
+           & $k_\text{mix}$ [W/mK] \\
+\midrule
+0.0 & 0   & 1.000 & 0.000 & 0.000 & 0.274 \\
+1.0 & 60  & 0.513 & 0.039 & 0.448 & 0.062 \\
+5.0 & 90  & 0.149 & 0.068 & 0.783 & 0.020 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Step 1: Python prototype (\texttt{run\_python.py})}
+
+The \texttt{GapMaterial} interface requires a single method:
+
+\begin{lstlisting}
+import fred_rod as fred
+import math
+
+class HeKrXePy(fred.GapMaterial):
+
+    _A_He, _B_He = 2.639e-3, 0.7085   # k_He(T) = A * T^B  [W/(m·K)]
+    _A_Kr, _B_Kr = 8.247e-5, 0.8363
+    _A_Xe, _B_Xe = 4.351e-5, 0.8618
+
+    def __init__(self, bup_atpct=0.0):
+        super().__init__()
+        bup_MWd = bup_atpct * 9.4
+        fgr = 0.0
+        if bup_MWd > 0.0:
+            a   = 4.7 / bup_MWd * (1.0 - math.exp(-bup_MWd / 5.9))
+            fgr = max(0.0, 1.0 - a)
+
+        n_He0  = 0.1e6 * 1.5e-6 / (8.314 * 293.15)   # ~6.15e-5 mol
+        fggen  = 0.25 * (bup_atpct / 100.0) * 0.010 / 0.238
+        fgrel  = fgr * fggen
+        n_Xe   = 0.8846 * fgrel
+        n_Kr   = 0.0769 * fgrel
+        n_HeFG = 0.0385 * fgrel
+        n_tot  = n_He0 + n_HeFG + n_Kr + n_Xe
+
+        self.y_He = (n_He0 + n_HeFG) / n_tot
+        self.y_Kr = n_Kr / n_tot
+        self.y_Xe = n_Xe / n_tot
+
+    def gapConductivity(self, T):
+        k_He = self._A_He * T ** self._B_He
+        k_Kr = self._A_Kr * T ** self._B_Kr
+        k_Xe = self._A_Xe * T ** self._B_Xe
+        return k_He ** self.y_He * k_Kr ** self.y_Kr * k_Xe ** self.y_Xe
+\end{lstlisting}
+
+The platform takes \texttt{gapConductivity(T)} and converts it to a gap
+conductance internally using the Lanning-Hann gas-jump model with the
+actual (time-varying) gap width and gas pressure.  The material class does
+not need to know the gap width.
+
+\begin{infobox}[\texttt{GapMaterial} interface]
+  Only \texttt{gapConductivity(T)} must be overridden.  The solver calls it
+  at each Newton iteration to obtain $k$ [W/(m$\cdot$K)], then computes the
+  full gap conductance $h$ [W/(m$^2\cdot$K)] using the gap geometry.
+  Optionally override \texttt{isGasBond()} (\texttt{True} by default) and
+  \texttt{clampConductance(h, gap\_closed)} for liquid-bond materials
+  (sodium, lead) where the conversion from $k$ to $h$ is different.
+\end{infobox}
+
+Three simulations are run with this gap material at increasing burnup levels,
+with UO2 fuel, AIM1 cladding, and a constant volumetric power of
+$3\times10^8$~W/m$^3$:
+
+\begin{center}
+\begin{tabular}{lrrr}
+\toprule
+Burnup & $T_\text{peak}$ [K] & Gap [$\mu$m] & $\sigma_{\theta,\text{outer}}$ [MPa] \\
+\midrule
+0.0 at\% (as-fabricated) & 1272 & 81.8 & 22.3 \\
+1.0 at\% (moderate)      & 1678 & 63.4 & 22.3 \\
+5.0 at\% (high)          & 2008 & 46.1 & 22.4 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The $+735$~K rise from 0 to 5~at\% illustrates the strong coupling between
+fission gas release and peak fuel temperature.
+
+\subsection{Step 2: Compiled C++ equivalent (\texttt{run\_cpp.py})}
+
+Once the Python model is validated, use the compiled \texttt{fred.HeKrXe}
+class --- which implements the same physics in C++:
+
+\begin{lstlisting}
+gap = fred.HeKrXe(bup_atpct=5.0)   # compiled class, same physics
+s   = fred.FredRodSolver(geom, fred.UO2(), fred.AIM1(), gap)
+# ... identical setup and run() call ...
+\end{lstlisting}
+
+The \texttt{run\_cpp.py} script also verifies that the conductivity values
+agree with the Python prototype to machine precision before running the
+simulations.
+
+\subsection{Adding your own compiled gap material}
+
+To follow the same Python$\to$C++ path for your own model:
+
+\begin{enumerate}
+  \item Write a header-only class in
+        \texttt{src/apps/fred\_rod/gapmaterial/MyGap.hpp}
+        that inherits \texttt{fred::GapMaterial} and overrides
+        \texttt{gapConductivity(double T) const}.
+  \item Add a pybind11 binding block in
+        \texttt{src/apps/fred\_rod/bindings.cpp}:
+        \begin{lstlisting}
+#include "apps/fred_rod/gapmaterial/MyGap.hpp"
+// inside bind_fred_rod():
+py::class_<MyGap, GapMaterial>(m, "MyGap")
+    .def(py::init<double>(), py::arg("param") = 0.0,
+         "Description of MyGap.");
+        \end{lstlisting}
+  \item Rebuild: \texttt{make fred-rod}.
+        No \texttt{Makefile} source-list change is needed for header-only classes.
+\end{enumerate}
+
+See \texttt{examples/fred\_rod/advanced\_prototyping/README.md} for the
+complete walkthrough, including the \texttt{.cpp}-file variant and liquid-bond
+material instructions.
+
+% ===========================================================================
+\section{FRED-ROD API Reference}
+\label{sec:api-rod}
+% ===========================================================================
+
+\subsection{Geometry: \texttt{FuelRodGeometry}}
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Attribute & Type & Description \\
+\midrule
+\texttt{nf}   & int & Fuel radial nodes ($\ge 2$) \\
+\texttt{nc}   & int & Cladding radial nodes ($\ge 2$) \\
+\texttt{nz}   & int & Axial layers ($\ge 1$) \\
+\texttt{rfi0} & float & Inner fuel radius [m] (0 = solid pellet) \\
+\texttt{rfo0} & float & Outer fuel radius [m] \\
+\texttt{rci0} & float & Inner cladding radius [m] \\
+\texttt{rco0} & float & Outer cladding radius [m] \\
+\texttt{dz0}  & list  & Axial layer heights [m] (length \texttt{nz}) \\
+\texttt{vgp}  & float & Gas plenum volume [m$^3$] \\
+\texttt{ruff} & float & Fuel outer surface roughness [m] \\
+\texttt{rufc} & float & Cladding inner surface roughness [m] \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Built-in materials}
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Class & Type & Notes \\
+\midrule
+\texttt{UO2(reference\_density)}         & Fuel    & Philipponneau conductivity \\
+\texttt{MOX(pu\_content, [ref\_density])} & Fuel    & Philipponneau; $x_\text{Pu} \in [0.01,0.5]$ \\
+\texttt{DummyFuelPellet()}               & Fuel    & Constant $k=10$, $\rho=10000$, $c_p=100$ \\
+\texttt{AIM1([reference\_density])}       & Cladding & Austenitic SS (Luzzi correlations) \\
+\texttt{T91([reference\_density])}        & Cladding & Ferritic-martensitic (KIT) \\
+\texttt{DummyCladding()}                  & Cladding & Constant $k=10$, $\rho=10000$, $c_p=100$ \\
+\texttt{He()}                             & Gap      & Pure helium \\
+\texttt{HeKrXe(bup\_atpct)}               & Gap      & He-Kr-Xe mixture; composition from burnup \\
+\texttt{DummyGapMaterial()}               & Gap      & $h(T) = 500 + 2.5T$ [W/m$^2$K] \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Solver methods: \texttt{FredRodSolver}}
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Method & Description \\
+\midrule
+\texttt{set\_enable\_heat\_conduction(bool)}       & Toggle thermal ODE \\
+\texttt{set\_enable\_stress\_strain(bool)}         & Toggle mechanics \\
+\texttt{set\_initial\_temperature(T0\_K)}          & Uniform IC [K] \\
+\texttt{set\_initial\_gas\_pressure(p0\_MPa)}      & Fill-gas pressure IC [MPa] \\
+\texttt{set\_coolant\_temperature(times, T\_K)}    & Outer BC history [K] \\
+\texttt{set\_coolant\_pressure(p\_MPa)}            & Constant coolant pressure [MPa] \\
+\texttt{set\_coolant\_pressure\_history(t, p)}     & Time-varying coolant pressure [MPa] \\
+\texttt{set\_power\_density\_history(times, qv)}   & Volumetric heat [W/m$^3$] \\
+\texttt{set\_tolerances(rtol, atol)}               & IDA tolerances \\
+\texttt{set\_hot\_start(bool)}                     & Pseudo-time pre-march to steady state before $t=0$ (Section~\ref{sec:hot-rod}) \\
+\texttt{set\_checkpoint\_prefix(prefix)}           & Enable fault-recovery checkpoint \\
+\texttt{set\_snapshot\_prefix(prefix, [times])}    & Enable physical-state snapshots \\
+\texttt{load\_checkpoint(filename)}                & Load checkpoint (time preserved) \\
+\texttt{load\_snapshot(filename)}                  & Load snapshot (time reset to 0) \\
+\texttt{set\_output\_file(filename)}               & Stream results to HDF5 during \texttt{run()} (native path) \\
+\texttt{run(tend, dtout, [all\_steps])}            & Execute simulation \\
+\midrule
+\texttt{time\_points()}               & Output times [s] \\
+\texttt{temperatures()}               & Nodal temperatures, shape \texttt{(n,nz*(nf+nc))} [K] \\
+\texttt{peak\_fuel\_temperature()}    & Peak fuel temperature [K] \\
+\texttt{gap\_width()}                 & Axial-avg gap width [m] \\
+\texttt{contact\_pressure()}          & Axial-avg contact pressure [MPa] \\
+\texttt{clad\_outer\_hoop\_stress()}  & Axial-avg outer clad hoop stress [MPa] \\
+\texttt{clad\_outer\_radius()}        & Axial-avg outer cladding radius [m] \\
+\texttt{fuel\_outer\_radius()}        & Axial-avg fuel outer radius [m] \\
+\texttt{clad\_inner\_radius()}        & Axial-avg cladding inner radius [m] \\
+\texttt{y\_out()}                     & IDA state vector, shape \texttt{(n,neq)} \\
+\texttt{yp\_out()}                    & IDA derivative vector, shape \texttt{(n,neq)} \\
+\texttt{restart\_time()}              & Restart time from last load [s] \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ===========================================================================
+\section{FRED-ROD Troubleshooting}
+\label{sec:trouble-rod}
+% ===========================================================================
+
+\begin{description}[leftmargin=0pt]
+  \item[\texttt{IDACalcIC} failure at $t=0$ with heat+stress-strain enabled.]
+    Either use a slow power ramp (at least 50~s) instead of a step at $t=0$
+    (see Section~\ref{sec:hcss}), or --- if a startup transient is not what
+    you want to observe anyway --- switch to \texttt{set\_hot\_start(True)}
+    (Section~\ref{sec:hot-rod}), which sidesteps the issue entirely by
+    pre-converging before $t=0$.
+
+  \item[Gap does not close when expected.]
+    Check that \texttt{rci0 - rfo0} is small enough relative to the
+    operating temperature difference, and that \texttt{ruff + rufc} (the
+    contact threshold) is less than the as-fabricated gap.
+
+  \item[Custom Python material causes segfault.]
+    Ensure your subclass does not raise exceptions inside the overridden
+    methods: C++ does not handle Python exceptions gracefully.  Validate
+    the correlation range in Python before passing the material to the solver.
+
+  \item[HDF5 file not created.]
+    The \texttt{output\_file} argument to \texttt{run()} requires
+    \texttt{h5py} to be installed (\texttt{pip install h5py}).
+
+  \item[\texttt{fred\_input} or \texttt{fred\_output} not found.]
+    These modules live in \texttt{fred\_platform/python/}.  Either add that
+    directory to your \texttt{PYTHONPATH}, copy the files to your working
+    directory, or add \texttt{sys.path.insert(0, '/path/to/fred\_platform/python')}
+    to your script.
+\end{description}
+
+% ===========================================================================
+\part{FRED-OX}
+\label{part:ox}
+% ===========================================================================
+
+FRED-OX uses the same coupled heat-conduction / thermo-elastic stress-strain
+equations as FRED-ROD (Part~\ref{part:rod}) and adds oxide-fuel-specific
+irradiation physics on top: empirical base-irradiation correlations for
+fuel/cladding properties, and fission-gas production/release, which feed
+back into gas-plenum pressure (an extra DAE state) and gap conductance.
+Where FRED-ROD leaves irradiation modelling entirely to the user, FRED-OX
+provides it built in for oxide (UO$_2$/MOX) fuel.
+
+The solver class is \texttt{FredOxSolver} (module \texttt{fred\_ox} /
+compiled extension \texttt{\_fred\_ox}), used in place of
+\texttt{FredRodSolver}, with FRED-OX-specific material classes:
+\texttt{FredOxMOX(pu\_content, rof0, sto0)}, \texttt{FredOxT91(reference\_density)},
+\texttt{FredOxGapMaterial()}.  Geometry is still built with the same
+\texttt{FuelRodGeometry}.
+
+\section{Recommended Example Order}
+\label{sec:ox-order}
+
+The example scripts under \texttt{examples/fred\_ox/} are best worked
+through in the following order:
+
+\begin{enumerate}
+  \item \textbf{\texttt{base\_irradiation}} --- first FRED-OX run: thermal +
+        base-irradiation + fission-gas-release physics, validated against
+        the legacy FRED Fortran code.
+  \item \textbf{\texttt{hot\_start\_demo}} --- cold vs hot start for FRED-OX,
+        with irradiation physics explicitly frozen during the pre-march.
+  \item \textbf{\texttt{hdf5\_output}} --- the FRED-OX-specific HDF5 fields
+        (gas pressure, fission gas, burnup) on top of temperature.
+  \item \textbf{\texttt{restart}} --- checkpoint-based fault recovery,
+        carrying irradiation state (burnup, gas inventory) through a restart.
+  \item \textbf{\texttt{restart\_snapshot}} --- checkpoint \emph{and}
+        named-snapshot workflows combined.
+  \item \textbf{\texttt{ESFR\_pin}} --- the most advanced example: a 600-day
+        base-irradiation benchmark followed by two fast transients (ULOF,
+        UTOP) loaded from a saved irradiated snapshot.
+\end{enumerate}
+
+\begin{infobox}[Why this order?]
+  \texttt{base\_irradiation} is the FRED-OX analogue of FRED-ROD's Examples
+  1--4: it is the first place you see the extra irradiation state (burnup,
+  fission gas, gas pressure) and the per-layer (axially resolved) boundary
+  conditions that most real FRED-OX runs use.  \texttt{hot\_start\_demo}
+  builds directly on it (same style of pin, shorter run) and is easiest to
+  understand once you know what ``irradiation effects'' means for FRED-OX.
+  \texttt{hdf5\_output}, \texttt{restart}, and \texttt{restart\_snapshot}
+  mirror the equivalent FRED-ROD examples (Sections~\ref{sec:hdf5},
+  \ref{sec:rs}) but are worth revisiting for OX specifically because
+  irradiation state (burnup, gas inventory) must persist correctly across
+  restarts, not just temperatures and stresses.  \texttt{ESFR\_pin} is last
+  because it combines everything: a long base-irradiation run, snapshotting,
+  and transient analysis starting from a realistically irradiated state.
+\end{infobox}
+
+% ===========================================================================
+\section{Example OX-1: Base Irradiation}
+\label{sec:ox-base}
+% ===========================================================================
+
+\textbf{File:} \texttt{examples/fred\_ox/base\_irradiation/irradiate\_10d/run.py}
+
+\medskip
+This is the FRED-OX equivalent of FRED-ROD's Example 3
+(Section~\ref{sec:hcss}): heat conduction and stress-strain are both active,
+but now base-irradiation correlations and fission-gas release are active
+too, and boundary conditions are specified \emph{per axial layer} rather
+than as single rod-wide histories.
+
+\textbf{Scenario:} an ESFR-SMART-style pin, \texttt{nz=20} axial layers
+(\texttt{dz=0.05~m} each, 1.0~m active length), \texttt{nf=22} fuel nodes,
+\texttt{nc=5} cladding nodes.  MOX fuel (\texttt{pu\_content=0.1799},
+\texttt{rof0=10542~kg/m$^3$}), T91 cladding
+(\texttt{reference\_density=7790~kg/m$^3$}); \texttt{rfi0=1.56e-3~m},
+\texttt{rfo0=4.68e-3~m}, \texttt{rci0=rfo0+1.55e-4~m}, \texttt{rco0=5.335e-3~m},
+\texttt{vgp=7.19e-5~m$^3$}.  Power ramps from 0 to a per-layer peak of
+$6.934\times10^8$~W/m$^3$ (layer 12) between $t=3600$~s and $t=86400$~s;
+clad outer temperature ramps from 668.0~K up to 824.31~K over the same
+window; \texttt{coolant\_pressure=0.2~MPa}, \texttt{initial\_gas\_pressure=0.1~MPa};
+\texttt{tend=86400~s}, \texttt{dtout=1800~s}; tolerances \texttt{(1e-5, 1e-7)}.
+
+\paragraph{Per-layer boundary conditions.}
+
+\begin{lstlisting}
+solver.set_power_density_history_per_layer(times, qqv_per_layer)   # W/m3, one column per layer
+solver.set_coolant_temperature_per_layer(times, Tco_per_layer)     # K
+solver.set_plenum_temperature_history(times, T_plenum)             # K
+solver.set_swelling_multiplier(0.8)   # scales solid fission-product swelling
+\end{lstlisting}
+
+\texttt{set\_power\_density\_history\_per\_layer} and
+\texttt{set\_coolant\_temperature\_per\_layer} take a 2-D array (time points
+$\times$ \texttt{nz}) instead of the single-column history used in FRED-ROD;
+this is what lets the axial power/temperature profile vary along the pin.
+\texttt{set\_plenum\_temperature\_history} is new: it feeds the gas-plenum
+temperature used in the gas-pressure DAE.
+
+\paragraph{New result accessors.}
+
+\begin{lstlisting}
+gpres = solver.gas_pressure()          # (n_steps,) MPa  -- plenum gas pressure
+fggen = solver.fg_generated()          # (n_steps,) mol  -- total fission gas generated
+fgrel = solver.fg_released()           # (n_steps,) mol  -- total fission gas released
+bup   = solver.burnup()                # (n_steps,) MWd/kgU
+gap_w = solver.gap_width()             # (n_steps,) m, axial average
+Tpeak = solver.peak_fuel_temperature() # (n_steps,) K
+\end{lstlisting}
+
+\paragraph{Legacy comparison at $t=86400$~s.}
+
+\begin{center}
+\begin{tabular}{lrr}
+\toprule
+Quantity & FRED-OX & Legacy FRED (Fortran) \\
+\midrule
+Gas pressure [MPa]                 & 0.24326 & --- \\
+Fission gas generated [cm$^3$ STP] & 0.33828 & --- \\
+Fission gas released [cm$^3$ STP]  & 0.013437 & --- \\
+FGR fraction [\%]                  & 3.972 & (reference: \texttt{outfrd000000000048}) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Gas amounts are stored in moles internally and converted to cm$^3$ at STP for
+comparison with the legacy output via
+$V_\text{STP} = n \times 8.314 \times 293.15 / 10^5 \times 10^6$.  The script
+produces \texttt{plots/gas\_pressure.png}, \texttt{plots/peak\_T\_fuel.png},
+\texttt{plots/fission\_gas.png}, and \texttt{plots/gap\_width.png}.
+
+\begin{infobox}[Key learning point]
+  \texttt{set\_swelling\_multiplier} scales only the \emph{solid}
+  fission-product swelling correlation --- a tuning knob for matching a
+  specific fuel design's densification/swelling behaviour.  It does not
+  affect gas-bubble swelling or fission-gas release, which are computed from
+  the burnup history directly.
+\end{infobox}
+
+% ===========================================================================
+\section{Example OX-2: Hot Start vs Cold Start}
+\label{sec:hot-ox}
+% ===========================================================================
+
+\textbf{File:} \texttt{examples/fred\_ox/hot\_start\_demo/run.py}
+
+\medskip
+The same \texttt{set\_hot\_start(True)} mechanism introduced for FRED-ROD
+(Section~\ref{sec:hot-rod}), but here the pseudo-time pre-march explicitly
+\textbf{disables irradiation physics} (fission gas release, swelling,
+burnup-dependent conductivity) while it converges the thermal/mechanical
+state, then re-enables irradiation and re-anchors $t=0$.  This matters
+because FRED-OX's irradiation state is time-integrated (burnup, gas
+inventory) --- letting it accumulate during an artificial pseudo-time march
+would give a physically meaningless burnup at ``$t=0$''.
+
+\textbf{Scenario:} a smaller single-layer MOX pin (\texttt{nz=1, nf=10,
+nc=3}) so the demo runs fast: \texttt{rfo0=4.68e-3~m},
+\texttt{rci0=rfo0+1.55e-4~m} (155~$\mu$m gap), \texttt{rco0=5.335e-3~m},
+\texttt{vgp=7.19e-5~m$^3$}; power $2\times10^8$~W/m$^3$; coolant and plenum
+temperature both 700~K; \texttt{coolant\_pressure=0.2~MPa},
+\texttt{initial\_gas\_pressure=0.1~MPa}; \texttt{tend=300~s},
+\texttt{dtout=10~s}; tolerances \texttt{(1e-5, 1e-7)}.  300~s is chosen
+deliberately: long enough for FRED-OX's $\sim$150--200~s thermal time
+constant to reach steady state, short enough that burnup and FGR stay
+negligible ($\text{fgrel}, \text{bup} \sim 10^{-4}$--$10^{-22}$, printed
+explicitly by the script) --- i.e.\ ``hot steady state, before any serious
+irradiation effects'', matching the docstring's own framing.
+
+\paragraph{What to expect.}
+
+\begin{itemize}
+  \item \textbf{Cold run:} $T_0=293.15$~K $\to$ peak fuel temperature
+        $\approx 1454.83$~K by $t\approx150$~s.
+  \item \textbf{Hot run:} flat at $\approx 1454.834$~K for the whole run
+        (max deviation from its own $t=0$ value $\approx 1.95\times10^{-4}$~K).
+\end{itemize}
+
+\begin{warningbox}[Interpreting ``no serious irradiation effects'']
+  The script asserts \texttt{fgrel}/\texttt{bup} stay tiny over the 300~s
+  window specifically to prove that the hot-vs-cold temperature comparison
+  is a thermal-only effect, not an artifact of irradiation state diverging
+  between the two runs.  For a longer run (hours to days), do not assume the
+  same holds --- burnup accumulates in real time regardless of hot/cold
+  start, so the two runs' irradiation states will diverge once real time
+  passes $t=0$, even though they started from the same thermal state.
+\end{warningbox}
+
+% ===========================================================================
+\section{Example OX-3: HDF5 Output}
+\label{sec:ox-hdf5}
+% ===========================================================================
+
+\textbf{File:} \texttt{examples/fred\_ox/hdf5\_output/run.py}
+
+\medskip
+Extends FRED-ROD's HDF5 example (Section~\ref{sec:hdf5}) with the
+FRED-OX-specific fields.  Uses the same \texttt{fred\_input}/\texttt{fred\_output}
+pattern:
+
+\begin{lstlisting}
+import fred_input as fred
+import fred_output as fo
+
+solver.run(tend=86400.0, dtout=1800.0, output_file='results.h5')
+solver2.run(tend=7200.0, dtout=3600.0, output_file='debug.h5', all_steps=True)
+
+r = fo.read_results_h5('results.h5')
+gpres  = r['gpres']         # (n_steps,) MPa
+fggen  = r['fggen']         # (n_steps,) mol
+fgrel  = r['fgrel']         # (n_steps,) mol
+bup    = r['bup']           # (n_steps,) MWd/kgU
+gap_w  = r['gap_width']     # (n_steps,) m
+peak_T = r['peak_T_fuel']   # (n_steps,) K
+T      = r['T']             # (n_steps, nz, nf+nc) K -- per-layer, unlike ROD's flat array
+\end{lstlisting}
+
+\begin{warningbox}[Shape convention]
+  Unlike FRED-ROD's single-layer examples, \texttt{r['T']} here is
+  genuinely 3-D (\texttt{[n\_steps, nz, nf+nc]}) because \texttt{nz>1}.
+  The script uses this to plot an axial temperature profile (fuel
+  centreline and clad outer surface vs.\ layer) at the final time step ---
+  not meaningful for the single-layer FRED-ROD examples.
+\end{warningbox}
+
+Unit conventions for the new fields match Example~OX-1: gas amounts in mol
+(convert to cm$^3$ STP the same way), burnup in MWd/kgU, gas pressure in MPa.
+
+% ===========================================================================
+\section{Example OX-4: Restart (Checkpoint)}
+\label{sec:ox-restart}
+% ===========================================================================
+
+\textbf{File:} \texttt{examples/fred\_ox/restart/run.py}
+
+\medskip
+Checkpoint-only fault recovery, the FRED-OX analogue of the checkpoint half
+of FRED-ROD's Example~7 (Section~\ref{sec:rs}): a single overwritten binary
+file for resuming after a crash, with simulation time \emph{preserved} on
+reload (as opposed to a snapshot, where time resets to 0 --- see
+Example~OX-5).
+
+\textbf{Scenario:} a 3-day (\texttt{tend=3*86400~s}) single-layer MOX/T91
+pin (\texttt{nf=4, nc=3, nz=1}), \texttt{pu\_content=0.20},
+\texttt{rof0=10200~kg/m$^3$}, cladding \texttt{reference\_density=7750~kg/m$^3$},
+power $1.5\times10^8$~W/m$^3$, coolant 620~K, \texttt{coolant\_pressure=0.1~MPa}.
+
+\begin{lstlisting}
+solver.set_checkpoint_prefix(ckpt_prefix)
+solver.run(tend, dtout)                       # (a) full reference run
+
+s_partial = make_solver()
+s_partial.set_checkpoint_prefix(ckpt_prefix)
+s_partial.run(86400.0, dtout)                 # (b) crash simulated at day 1
+
+s_restart = make_solver()
+s_restart.set_checkpoint_prefix(ckpt_prefix)
+s_restart.load_checkpoint(ckpt_file)
+print(s_restart.restart_time())               # non-zero, e.g. ~86400 s -- time preserved
+s_restart.run(tend, dtout)                    # (c) continue to tend
+\end{lstlisting}
+
+The script then verifies that \texttt{peak\_fuel\_temperature()},
+\texttt{gas\_pressure()}, \texttt{burnup()}, and \texttt{fg\_released()} from
+the restarted run match the full reference run at overlapping output times
+(\texttt{rtol=1e-6}, gas pressure \texttt{1e-5}), printing a PASS/FAIL
+comparison table --- confirming that irradiation state, not just thermal
+state, survives a checkpoint round-trip exactly.
+
+% ===========================================================================
+\section{Example OX-5: Restart and Snapshot}
+\label{sec:ox-rs}
+% ===========================================================================
+
+\textbf{Files:} \texttt{examples/fred\_ox/restart\_snapshot/\{0\_full\_run,1\_checkpoint\_restart,2\_continuation\}.py}
+
+\medskip
+The same three-script pattern as FRED-ROD's Example~7 (Section~\ref{sec:rs}),
+using the identical 3-day scenario as Example~OX-4, but exercising
+\emph{both} persistence mechanisms together and confirming FRED-OX's
+irradiation state (burnup, fission-gas inventory) survives each one
+correctly:
+
+\begin{description}
+  \item[\texttt{0\_full\_run.py}] Reference run.  Enables both
+        \texttt{set\_checkpoint\_prefix(prefix)} and
+        \texttt{set\_snapshot\_prefix(prefix, snapshot\_times=[t\_half])}.
+        Produces \texttt{ox\_checkpoint.chk} (overwritten fault-recovery
+        file), \texttt{ox\_frame1.snapshot} (at $t_\text{half}=86400$~s),
+        \texttt{ox\_frame2.snapshot} (final state, saved automatically), and
+        reference \texttt{.npy} arrays (\texttt{ref\_times/T/gp/bup/fgr.npy}).
+  \item[\texttt{1\_checkpoint\_restart.py}] Same pattern as Example~OX-4:
+        partial run to day~1 with a checkpoint, reload, \texttt{restart\_time()}
+        confirmed non-zero, continue to \texttt{tend}; verified against the
+        script-0 reference.
+  \item[\texttt{2\_continuation.py}] Snapshot-based two-phase run: Phase~1
+        (0~$\to$~$t_\text{half}$) auto-saves a snapshot; Phase~2 calls
+        \texttt{s2.load\_snapshot(snap\_file)}, confirms
+        \texttt{s2.restart\_time() == 0.0} (time reset) while burnup and
+        fission-gas state are preserved from Phase~1, then runs
+        $0 \to t_\text{end} - t_\text{half}$.  Trajectories are stitched by
+        offsetting Phase~2 times by $t_\text{half}$, and the combined series
+        is verified against the script-0 reference.
+\end{description}
+
+\begin{infobox}[Key learning point]
+  The fields explicitly carried through and checked across every restart
+  path here --- \texttt{peak\_fuel\_temperature}, \texttt{gas\_pressure},
+  \texttt{burnup}, \texttt{fg\_released} --- are exactly the extra DAE/ODE
+  state FRED-OX adds over FRED-ROD.  This example is the most direct proof
+  that the gas-plenum-pressure DAE, burnup accumulator, and FGR inventory
+  all persist correctly through both time-preserving (checkpoint) and
+  time-resetting (snapshot) restarts.
+\end{infobox}
+
+% ===========================================================================
+\section{Example OX-6: ESFR Pin --- Base Irradiation and Transients}
+\label{sec:esfr}
+% ===========================================================================
+
+\textbf{Files:} \texttt{examples/fred\_ox/ESFR\_pin/\{base\_irradiation,ULOF\_transient,UTOP\_transient\}/run.py}
+
+\medskip
+The most advanced FRED-OX example: a full-length base-irradiation benchmark
+followed by two fast, unprotected-transient analyses that pick up from the
+irradiated state via a saved snapshot.  ESFR = European Sodium Fast Reactor
+(ESFR-SMART); all three scripts share the same pin geometry and materials as
+Example~OX-1 (\texttt{nz=20, nf=22, nc=5}, MOX/T91/He).
+
+\subsection{\texttt{base\_irradiation}: 600-day benchmark}
+
+Same setup as Example~OX-1 but run for 600 days
+($t_\text{end}=5.184\times10^7$~s, \texttt{dtout=86400~s}), with boundary
+conditions given at 5 knot times
+($0, 3600, 86400, 2.592\times10^7, 5.184\times10^7$~s) per axial layer.  At
+$t=600$~d the legacy reference gives: gas pressure 0.59687~MPa, fission gas
+generated 428.871~cm$^3$~STP, released 101.969~cm$^3$~STP (23.776\% FGR),
+peak fuel temperature (layer 13) 1826.6~$^\circ$C.  The new call here is:
+
+\begin{lstlisting}
+solver.set_snapshot_prefix(prefix)   # auto-saves esfr_pin_base_frame1.snapshot at run end
+\end{lstlisting}
+
+This snapshot --- the fully irradiated, 600-day pin state --- is what the
+two transient scripts below load.
+
+\subsection{\texttt{ULOF\_transient}: Unprotected Loss of Flow (43~s)}
+
+\begin{lstlisting}
+solver = make_solver()
+solver.load_snapshot('../base_irradiation/snapshots/esfr_pin_base_frame1.snapshot')
+print(solver.restart_time())          # 0.0 -- confirms time reset; irradiation state kept
+solver.set_swelling_multiplier(0.0)   # freeze further solid swelling during the fast transient
+solver.run(tend=43.0, dtout=0.1)      # 430 output steps
+\end{lstlisting}
+
+Models a coolant pump-halving event: 38 boundary-condition time points span
+$t=0$ to $43.5$~s (pump halving time 10~s; power drops $\sim$28\% over the
+transient as flow-driven reactivity feedback kicks in).  Tolerances
+\texttt{(1e-5, 1e-8)}.  \texttt{set\_swelling\_multiplier(0.0)} is set
+because 43~s is far too short for any further irradiation-timescale solid
+swelling to occur --- only the already-accumulated (loaded-from-snapshot)
+swelling and the fast thermal/mechanical response matter here.
+
+\subsection{\texttt{UTOP\_transient}: Unprotected Transient Over-Power (1000~s)}
+
+Same snapshot-loading pattern as ULOF, but models a $+280$~pcm reactivity
+insertion: power peaks $\sim$37\% above nominal, then decays, over 52
+boundary-condition time points spanning $t=0$ to $1000.4$~s. Also uses
+\texttt{set\_swelling\_multiplier(0.0)}; \texttt{dtout=1.0~s} (1000 output
+steps); tolerances \texttt{(1e-4, 1e-8)}.
+
+\medskip
+Both transient scripts print final gas pressure, peak fuel temperature,
+average gap width, and fission gas released, and produce a $2\times2$
+subplot grid (\texttt{plots/ulof\_results.png} / \texttt{plots/utop\_results.png})
+of these quantities vs.\ time.
+
+\begin{infobox}[Key learning point]
+  \texttt{ESFR\_pin} demonstrates the intended FRED-OX workflow for
+  transient safety analysis: run (or load from a validated database) a
+  long base-irradiation history to build up realistic burnup/gas/swelling
+  state, snapshot it, then branch into as many fast transient scenarios as
+  needed --- each starting from the same irradiated state at $t=0$ without
+  re-running the multi-hundred-day irradiation each time.
+\end{infobox}
+
+% ===========================================================================
+\section{FRED-OX API Reference}
+\label{sec:api-ox}
+% ===========================================================================
+
+\subsection{Materials}
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Class & Type & Notes \\
+\midrule
+\texttt{FredOxMOX(pu\_content, rof0, sto0)} & Fuel     & MOX with base-irradiation correlations \\
+\texttt{FredOxT91(reference\_density)}      & Cladding & Ferritic-martensitic, irradiation-aware \\
+\texttt{FredOxGapMaterial()}                & Gap      & He/fission-gas mixture, burnup-coupled \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Solver methods: \texttt{FredOxSolver} --- additions over \texttt{FredRodSolver}}
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Method & Description \\
+\midrule
+\texttt{set\_power\_density\_history\_per\_layer(t, qqv)} & Per-layer volumetric heat [W/m$^3$] \\
+\texttt{set\_coolant\_temperature\_per\_layer(t, T)}       & Per-layer coolant BC [K] \\
+\texttt{set\_plenum\_temperature\_history(t, T)}           & Gas-plenum temperature [K] \\
+\texttt{set\_swelling\_multiplier(f)}                      & Scale solid fission-product swelling \\
+\texttt{set\_hot\_start(bool)}                              & Pre-march with irradiation frozen (Section~\ref{sec:hot-ox}) \\
+\midrule
+\texttt{gas\_pressure()}              & Gas-plenum pressure [MPa] (extra DAE state) \\
+\texttt{fg\_generated()}              & Total fission gas generated [mol] \\
+\texttt{fg\_released()}               & Total fission gas released [mol] \\
+\texttt{burnup()}                     & Rod burnup [MWd/kgU] \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+All other geometry attributes, materials-interface concepts, and solver
+methods (temperatures, gap width, checkpoint/snapshot, HDF5 output) are
+identical to FRED-ROD --- see Section~\ref{sec:api-rod}.
+
+% ===========================================================================
+\section{FRED-OX Troubleshooting}
+\label{sec:trouble-ox}
+% ===========================================================================
+
+\begin{description}[leftmargin=0pt]
+  \item[Fission gas release seems to jump discontinuously across a restart.]
+    Confirm you used \texttt{load\_checkpoint} (time-preserving) and not
+    \texttt{load\_snapshot} (time-resetting) if you intended to continue the
+    \emph{same} irradiation history --- see Section~\ref{sec:ox-restart}.
+    Loading a snapshot deliberately resets simulation time to 0 while
+    keeping burnup/gas state, which is correct for starting a new transient
+    from an irradiated pin, but wrong if you wanted a literal continuation.
+
+  \item[\texttt{set\_hot\_start(True)} gives an unexpectedly large burnup at $t=0$.]
+    This should not happen --- irradiation physics is frozen during the
+    pre-march (Section~\ref{sec:hot-ox}).  If you see nonzero burnup growth
+    at $t=0$, check you are calling \texttt{set\_hot\_start} before
+    \texttt{run()}, not after building a solver you have already partially
+    run.
+
+  \item[Per-layer boundary condition array shape errors.]
+    \texttt{set\_power\_density\_history\_per\_layer} and
+    \texttt{set\_coolant\_temperature\_per\_layer} expect a 2-D array shaped
+    \texttt{(n\_time\_points, nz)} --- one column per axial layer, in the
+    same top-to-bottom order as \texttt{g.dz0}.  A single-layer (\texttt{nz=1})
+    example still needs shape \texttt{(n, 1)}, not a flat 1-D array.
+
+  \item[Legacy comparison mismatch after changing \texttt{set\_swelling\_multiplier}.]
+    The legacy reference values quoted in Examples~OX-1 and OX-6 assume the
+    default multiplier used in those scripts (0.8 for \texttt{base\_irradiation},
+    unset/1.0 elsewhere).  Changing it is a deliberate tuning choice and will
+    shift gap width, gas pressure, and hence FGR relative to the quoted
+    reference numbers.
+
+  \item[See also] FRED-ROD's troubleshooting list (Section~\ref{sec:trouble-rod})
+    for issues common to both apps (\texttt{IDACalcIC} failures, gap-closure
+    setup, HDF5/\texttt{h5py} availability, Python module path issues).
+\end{description}
+
+% ===========================================================================
+\section{Beyond FRED-ROD and FRED-OX: FRED-M-Na}
+\label{sec:mna-pointer}
+% ===========================================================================
+
+FRED-M-Na (metallic U-Pu-Zr fuel in sodium) is built on the same platform
+layer as FRED-ROD and FRED-OX but is not covered in depth by this manual.
+Its examples live under \texttt{examples/fred\_m\_na/} and follow the same
+general pattern (geometry $\to$ materials $\to$ solver $\to$ run), with its
+own physics documented in \texttt{doc/physics\_fred\_m\_na.md} and
+\texttt{doc/theory\_manual/fred\_m\_na.tex}.
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Example & What it shows \\
+\midrule
+\texttt{simple\_irradiation}         & First FRED-M-Na run: single-pin base irradiation \\
+\texttt{hot\_start\_demo}            & Cold vs hot start (same concept as Sections~\ref{sec:hot-rod}, \ref{sec:hot-ox}) \\
+\texttt{restart\_snapshot}           & Checkpoint and snapshot persistence (same pattern as Section~\ref{sec:ox-rs}) \\
+\texttt{timpano\_SAS\_benchmark}     & Multi-year benchmark against legacy FRED-M / SAS4A \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{infobox}[Where to start with FRED-M-Na]
+  If you are already comfortable with FRED-ROD and FRED-OX from this
+  manual, \texttt{simple\_irradiation} $\to$ \texttt{hot\_start\_demo} $\to$
+  \texttt{restart\_snapshot} follows the same learning progression as
+  Parts~\ref{part:rod}--\ref{part:ox}, before moving on to the full
+  \texttt{timpano\_SAS\_benchmark} legacy-validation case.
+\end{infobox}
+
+% ===========================================================================
+\end{document}
+% ===========================================================================

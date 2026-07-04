@@ -1,0 +1,5 @@
+[0] Config.pm:328> INFO - This is Biber 2.21
+[0] Config.pm:331> INFO - Logfile is 'main.aux.blg'
+[31] biber:342> INFO - === Tue Jun 23, 2026, 14:54:33
+[84] Utils.pm:479> ERROR - Cannot find 'main.aux.bcf'!
+[85] Biber.pm:137> INFO - ERRORS: 1

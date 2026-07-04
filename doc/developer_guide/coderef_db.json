@@ -1,0 +1,218 @@
+{
+  "fred_m_na_gap_behavior": [
+    {
+      "file": "apps/fred_m_na/FredMNaGapBehavior.hpp",
+      "line": 19
+    }
+  ],
+  "fred_m_na_stress_strain": [
+    {
+      "file": "apps/fred_m_na/FredMNaStressStrain.hpp",
+      "line": 32
+    }
+  ],
+  "fred_m_na_stress_strain_residual": [
+    {
+      "file": "apps/fred_m_na/FredMNaStressStrain.hpp",
+      "line": 43
+    }
+  ],
+  "fred_ox_residuals": [
+    {
+      "file": "apps/fred_ox/FredOxResiduals.hpp",
+      "line": 11
+    }
+  ],
+  "fred_ox_global_residuals": [
+    {
+      "file": "apps/fred_ox/FredOxResiduals.hpp",
+      "line": 93
+    }
+  ],
+  "fred_ox_irradiation_hook": [
+    {
+      "file": "apps/fred_ox/FredOxResiduals.hpp",
+      "line": 96
+    }
+  ],
+  "fred_ox_solver": [
+    {
+      "file": "apps/fred_ox/FredOxSolver.hpp",
+      "line": 21
+    }
+  ],
+  "fred_ox_layer_state": [
+    {
+      "file": "apps/fred_ox/FredOxState.hpp",
+      "line": 10
+    }
+  ],
+  "fred_ox_rod_state": [
+    {
+      "file": "apps/fred_ox/FredOxState.hpp",
+      "line": 35
+    }
+  ],
+  "fred_rod_residuals": [
+    {
+      "file": "apps/fred_rod/FredRodResiduals.hpp",
+      "line": 11
+    }
+  ],
+  "fred_rod_yvec_layout": [
+    {
+      "file": "apps/fred_rod/FredRodResiduals.hpp",
+      "line": 19
+    }
+  ],
+  "fred_rod_thermal_hook": [
+    {
+      "file": "apps/fred_rod/FredRodResiduals.hpp",
+      "line": 65
+    }
+  ],
+  "fred_rod_solver": [
+    {
+      "file": "apps/fred_rod/FredRodSolver.hpp",
+      "line": 15
+    }
+  ],
+  "fred_rod_run": [
+    {
+      "file": "apps/fred_rod/FredRodSolver.hpp",
+      "line": 35
+    }
+  ],
+  "cladding_iface": [
+    {
+      "file": "platform/CladdingMaterial.hpp",
+      "line": 12
+    }
+  ],
+  "cladding_creep_hook": [
+    {
+      "file": "platform/CladdingMaterial.hpp",
+      "line": 41
+    }
+  ],
+  "fred_ida_solver_base": [
+    {
+      "file": "platform/FredIdaSolverBase.hpp",
+      "line": 6
+    }
+  ],
+  "fred_solver_base": [
+    {
+      "file": "platform/FredSolverBase.hpp",
+      "line": 34
+    }
+  ],
+  "fuel_pellet_iface": [
+    {
+      "file": "platform/FuelPelletMaterial.hpp",
+      "line": 13
+    }
+  ],
+  "fuel_rod_geometry": [
+    {
+      "file": "platform/FuelRodGeometry.hpp",
+      "line": 27
+    }
+  ],
+  "geometry_build": [
+    {
+      "file": "platform/FuelRodGeometry.hpp",
+      "line": 73
+    }
+  ],
+  "axial_layer_state": [
+    {
+      "file": "platform/FuelRodState.hpp",
+      "line": 15
+    }
+  ],
+  "update_geometry": [
+    {
+      "file": "platform/FuelRodState.hpp",
+      "line": 85
+    }
+  ],
+  "rod_state": [
+    {
+      "file": "platform/FuelRodState.hpp",
+      "line": 134
+    }
+  ],
+  "gap_material_iface": [
+    {
+      "file": "platform/GapMaterial.hpp",
+      "line": 21
+    }
+  ],
+  "gap_bond_selector": [
+    {
+      "file": "platform/GapMaterial.hpp",
+      "line": 32
+    }
+  ],
+  "gap_pressure_model": [
+    {
+      "file": "platform/GapPressureModel.hpp",
+      "line": 83
+    }
+  ],
+  "gap_state_manager": [
+    {
+      "file": "platform/GapStateManager.hpp",
+      "line": 14
+    }
+  ],
+  "heat_conduction_neq": [
+    {
+      "file": "platform/HeatConduction.hpp",
+      "line": 38
+    }
+  ],
+  "heat_conduction_residual": [
+    {
+      "file": "platform/HeatConduction.hpp",
+      "line": 51
+    }
+  ],
+  "rod_residuals_class": [
+    {
+      "file": "platform/RodResiduals.hpp",
+      "line": 18
+    }
+  ],
+  "rod_residuals_nvi": [
+    {
+      "file": "platform/RodResiduals.hpp",
+      "line": 99
+    }
+  ],
+  "rod_residuals_hooks": [
+    {
+      "file": "platform/RodResiduals.hpp",
+      "line": 133
+    }
+  ],
+  "rod_residuals_neq_layout": [
+    {
+      "file": "platform/RodResiduals.hpp",
+      "line": 192
+    }
+  ],
+  "stress_strain_neq": [
+    {
+      "file": "platform/StressStrain.hpp",
+      "line": 57
+    }
+  ],
+  "stress_strain_residual": [
+    {
+      "file": "platform/StressStrain.hpp",
+      "line": 64
+    }
+  ]
+}

@@ -1,0 +1,406 @@
+\begin{refsection}
+
+\section{Metallic Fuel in Sodium (FRED-M-Na)}
+\label{sec:fred_m_na}
+
+FRED-M-Na extends the FRED platform for U-Pu-Zr ternary metallic fuel rods in sodium-cooled fast reactors.  The same core heat conduction and stress-strain equations (Section~\ref{sec:thermo_mech}) are used with HT-9 ferritic-martensitic cladding and additional physics specific to metallic fuel:
+
+\begin{itemize}
+\item \textbf{Ternary U-Pu-Zr phase diagram}: phase state (alpha, beta, gamma, delta) affects thermal properties.
+\item \textbf{Thermal conductivity with Na infiltration and irradiation}: sodium filling of open pores increases effective conductivity; burnup further modifies it.
+\item \textbf{Zirconium redistribution}: Zr migrates from the hot fuel centre to the cooler periphery under steep temperature gradients, changing composition and phase radially.
+\item \textbf{Sodium infiltration}: sodium from the coolant infiltrates open fuel porosity after the fuel contacts the cladding.
+\item \textbf{Fuel swelling (solid FP)}: solid fission product swelling narrows the gap on a per-at\% burnup basis.
+\item \textbf{Fission gas release (Karahan empirical model)}: the cumulative release fraction $f_r$ is a burnup-saturation function calibrated to EBR-II data \cite{karahan2009}:
+\begin{equation*}
+  f_r(B_\mathrm{FIMA}) = 0.8\!\left(1 - e^{-100\,B_\mathrm{FIMA}/1.8}\right),
+  \qquad \bar{B}_\mathrm{FIMA} \geq 8\times10^{-3},
+\end{equation*}
+where $100\,B_\mathrm{FIMA}$ converts to atomic percent and the condition enforces a rod-average burnup threshold of $0.8\,\mathrm{at\%}$ before any gas is released.  The fraction saturates near 80\,\% by ${\sim}10\,\mathrm{at\%}$; released Xe/Kr dilute the gap gas and raise plenum pressure.
+\item \textbf{Cladding wastage}: lanthanides from fission products diffuse into HT-9, consuming cladding material.
+\end{itemize}
+
+All correlations are ported from the Fortran reference code \texttt{FRED\_M\_OCT24.SRC} \cite{timpanoFredM} following Karahan (2009) \cite{karahan2009}.
+
+% -------------------------------------
+\subsection{Time Integration: Fixed-Step Backward Euler with Explicit Irradiation-Physics Coupling}
+\label{sec:mna_time_integration}
+% -------------------------------------
+
+FRED-ROD and FRED-OX advance the full DAE state vector $\mathbf{y}$ through SUNDIALS IDA's adaptive-step BDF corrector (Section~\ref{sec:sundials}). FRED-M-Na uses its own fixed-step driver instead, inherited from the structure of legacy \texttt{Baseir.for} and retained because attempts to drive the same physics through SUNDIALS IDA proved numerically fragile. The fission-gas swelling/contact transition produces a near-discontinuous change in residual character that causes IDA's adaptive step-size control to reduce $h$ to unacceptably small values, eventually exhausting the corrector's ability to converge, while the legacy fixed-step approach passes through the same regime without issue.  
+
+Therefore, no IDA calls: \texttt{IDACreate}, \texttt{IDAInit}, \texttt{IDASolve}, or \texttt{IDAReInit} calls exist anywhere in the FRED-M-Na application. The SUNDIALS \texttt{N\_Vector} type is retained purely as a plain data buffer so that checkpoint and HDF5-restart machinery from \texttt{FredSolverBase} works without modification.
+
+At each step two numerically distinct update steps are applied in sequence to two disjoint groups of state variables:
+\begin{itemize}
+\item an \textbf{implicit, backward-Euler} update for the primary thermal/mechanical DAE unknowns (temperatures, stresses and strains, gas pressure, fission-gas generation and release); and
+\item an \textbf{explicit, forward-Euler} update for the irradiation-physics accumulators (burnup, GRSIS bubble/gas-release state, Zr redistribution, cladding wastage), evaluated \emph{after} the implicit solve.
+\end{itemize}
+
+Algorithm~\ref{alg:mna_timestep} summarises the complete per-step logic.
+
+\begin{algorithm}[H]
+\caption{FRED-M-Na: one fixed step $t_n \to t_{n+1} = t_n + \Delta t$}
+\label{alg:mna_timestep}
+\begin{algorithmic}[1]
+  \Statex \textbf{--- Implicit backward-Euler solve ---}
+  \For{outer $= 1$ \textbf{to} 60}
+    \State Update $f_\mathrm{gen}$, $f_\mathrm{rel}$ by direct substitution
+    \For{each axial layer $j = 1,\ldots,N_z$}
+      \State Dense Newton solve ($\leq 25$ iters, FD Jacobian):
+      \Statex \qquad\qquad solve for $[T_1,\ldots,T_{n_f+n_c},\;
+                 \varepsilon^{sw}_i,\; \varepsilon^{cr}_i,\;
+                 b,\; \boldsymbol{\sigma}, \boldsymbol{\varepsilon},\; p_\mathrm{gas}]$
+      \Statex \qquad\qquad using $\dot{y}_k \approx (y_k - y_k^{(n)})/\Delta t$
+                 for ODE rows, $\dot{y}_k = 0$ for AE rows
+    \EndFor
+    \If{$\|\Delta p_\mathrm{gas}\| < 10^{-6}$ \textbf{and} layer corrections $< 10^{-6}$}
+      \State \textbf{break}
+    \EndIf
+  \EndFor
+  \State Accept last current state even if residuals $> 10^{-6}$   (no SUNDIAL's style step-size shrink or retry)
+  \Statex
+  \Statex \textbf{--- Explicit forward-Euler update (\texttt{afterAcceptedStep}) ---}
+  \For{each axial layer $j$}
+    \State \textbf{Burnup}: $B_{FIMA,j} \mathrel{+}= \bigl(q_v''' \,/\, (E_{fiss}\,n_{HM})\bigr)\,\Delta t$
+    \State \textbf{GRSIS} bubble/gas-release: explicit Euler sub-stepped at
+           $\delta t \leq 1000\,\mathrm{s}$
+    \State \textbf{Zr redistribution}: explicit Euler flux-difference, 20 sub-steps
+    \State \textbf{Cladding wastage}: explicit Euler diffusion, 20 sub-steps
+    \State \textbf{Gap state}: evaluate contact regime $\in \{\texttt{open},\; \texttt{soft},\; \texttt{closed}\}$ from updated gap geometry; update residual branch for next step
+  \EndFor
+  \State Sync updated irradiation state to residual assembler (one-step lag)
+\end{algorithmic}
+\end{algorithm}
+
+\noindent\textbf{Performance.} A representative 2176-day base-irradiation simulation (\path{examples/fred_m_na/timpano_SAS_benchmark/base_irradiation/}) with $\Delta t = 1\,\mathrm{day}$ completes in approximately 80\,s wall-clock time on a single core.  Further optimisation of the integrator has therefore not been pursued.
+
+\subsubsection{Implicit backward-Euler solve for the primary DAE unknowns}
+\label{sec:mna_backward_euler}
+
+At each fixed step from $t_n$ to $t_{n+1} = t_n + \Delta t$, every differential row of the DAE is discretised with the backward-Euler formula:
+\begin{equation}
+  \dot{y}_k \approx \frac{y_k(t_{n+1}) - y_k(t_n)}{\Delta t},
+  \qquad \mathtt{id}_k = 1,
+  \label{eq:mna_be}
+\end{equation}
+while algebraic rows ($\mathtt{id}_k = 0$) are left undifferentiated.  The \texttt{id}-array convention is identical to that passed to IDA by FRED-ROD and FRED-OX, so the per-layer irradiation ODEs ($b$, $\varepsilon^{sw}_i$, $\varepsilon^{cr}_i$) and the mechanical AEs are typed consistently across all three applications.  Unlike IDA, $\Delta t$ is fixed for the whole step --- there is no adaptive step-size control or local-truncation-error test.
+
+The state vector is partitioned into three rod-scalar globals ($f_\mathrm{gen}$, $f_\mathrm{rel}$, $p_\mathrm{gas}$) and per-layer local blocks.  Layers couple only through the three globals, so the step is solved by an outer Picard sweep (Algorithm~\ref{alg:mna_timestep}, lines 1--8):
+\begin{enumerate}
+\item $f_\mathrm{gen}$ and $f_\mathrm{rel}$ are updated by direct substitution (their defining equations are explicit in those unknowns).
+\item $p_\mathrm{gas}$ is solved \emph{jointly} with each layer's Newton block rather than by direct substitution, because its defining equation depends on all layers' current fuel/cladding radii and axial strain.
+\item Each layer's block --- temperatures, per-layer irradiation ODEs ($b$, $\varepsilon^{sw}_i$, $\varepsilon^{cr}_i$), and mechanical AEs ($\boldsymbol{\sigma}$, $\boldsymbol{\varepsilon}$), plus the jointly-solved $p_\mathrm{gas}$ --- is solved by a dense Newton iteration (up to 25 steps, finite-difference Jacobian, tolerance $10^{-7}$) via Eq.~\eqref{eq:mna_be}.
+\end{enumerate}
+The sweep repeats until both the layer-Newton correction and the change in $p_\mathrm{gas}$ between sweeps fall below $10^{-6}$ (relative), capped at 60 outer iterations.  If the cap is reached, the current iterate is accepted as-is with no retry --- matching legacy \texttt{Baseir.for}'s \texttt{niter\,>\,1000 $\to$ goto\,100} escape.  In practice the sweep converges in 2--4 iterations throughout the full 2176-day benchmark, so this escape is never exercised.
+
+\subsubsection{Explicit forward-Euler update for irradiation physics}
+\label{sec:mna_forward_euler}
+
+After the implicit solve has been accepted, \texttt{FredMNaSolver::afterAcceptedStep} advances the irradiation-physics accumulators using explicit (forward) Euler:
+\begin{equation}
+  X(t_{n+1}) = X(t_n) + \dot{X}\bigl(t_n,\,\mathbf{y}(t_n)\bigr)\,\Delta t,
+  \label{eq:mna_fwd_euler}
+\end{equation}
+i.e.\ rates are evaluated at the already-accepted start-of-step state and not solved implicitly.  The four updated quantities are:
+\begin{itemize}
+\item \textbf{Burnup} ($B_{FIMA,j}$ per layer): $B_{FIMA,j} \mathrel{+}= (q_v''' / E_{fiss}\,n_{HM})\,\Delta t$.
+\item \textbf{GRSIS bubble/gas-release state} (Section~\ref{sec:upuzr_fgr}): the seven per-node concentrations ($c_{gfm}$, $c_{gb1}$, $c_{gb2}$, $c_{gb31}$, $c_{gb32}$, $c_{ggen}$, $c_{grel}$) are advanced as $X \mathrel{+}= \dot X\,\Delta t$, a direct port of legacy \texttt{GRSIS\_metalfuel.for}, which itself uses unguarded explicit Euler.  Because the legacy driver only called this routine with $\Delta t \approx 1000\,\mathrm{s}$, the call is internally sub-stepped to $\delta t \leq 1000\,\mathrm{s}$ to keep the explicit scheme in the stability regime the model was calibrated for.
+\item \textbf{Zirconium redistribution} (Section~\ref{sec:zrdist}): the thermomigration diffusion equation~\eqref{eq:zrdist} is discretised by a conservative radial flux difference and advanced by forward Euler,
+    \begin{equation}
+      c_{Zr,i}(t+\delta t) = c_{Zr,i}(t) +
+        \frac{2\,\delta t}{r_{i+1}^2 - r_i^2}
+        \Bigl(r_i\,J_{i} - r_{i+1}\,J_{i+1}\Bigr),
+      \label{eq:mna_zr_fwd_euler}
+    \end{equation}
+internally sub-stepped into 20 equal intervals $\delta t = \Delta t / 20$ (matching the legacy Fortran's count) for numerical stability against the diffusive term.
+\item \textbf{Cladding wastage} (Section~\ref{sec:wastage}): the lanthanide diffusion/consumption model is likewise advanced by explicit Euler with 20 sub-steps per outer step.
+\end{itemize}
+
+None of these updates feed back into the Newton system for the \emph{same} step: their results enter the residual only at the \emph{next} step (one-step-lagged explicit coupling).  This mirrors the structure of legacy \texttt{Baseir.for}, which updates burnup, GRSIS, and Zr redistribution once per fixed step from the previous step's converged thermal/mechanical state.
+
+\subsubsection{Gap-state detection without a root-finder}
+
+FRED-ROD/FRED-OX locate gap contact-state transitions to machine precision via an IDA root function (Section~\ref{sec:gap_events}).  FRED-M-Na registers no root function --- with no adaptive integrator there is no continuous trajectory to search.  Instead, gap geometry and the \texttt{open}/\texttt{soft}/\texttt{clos} ratchet (Section~\ref{sec:upuzr_gap_states}) are re-evaluated once per fixed step in \texttt{afterAcceptedStep}, exactly as legacy FRED-M does.  A boundary-condition change detected this way needs no special re-initialisation because the one-step integrator carries no multistep history to invalidate.
+
+% -------------------------------------
+\subsection{U-Pu-Zr Phase Diagram}
+\label{sec:phase}
+% -------------------------------------
+
+The ternary phase diagram is approximated by linear interpolation between binary U-Zr and U-19\%Pu-Zr boundaries (Karahan 2007, as was implemented in \texttt{Fphase.for} \cite{karahan2009}).  Six regions are identified by six temperature/composition boundary lines:
+
+\begin{itemize}
+\item $\alpha$: orthorhombic phase at low temperature and low Zr.
+\item $\alpha + \delta$: two-phase region at intermediate Zr.
+\item $\delta$: high-Zr phase.
+\item $\beta$: body-centred cubic, intermediate temperature.
+\item $\beta + \gamma$: two-phase BCC.
+\item $\gamma$: high-temperature fully BCC; highest thermal conductivity.
+\end{itemize}
+
+The phase determines which thermal conductivity model is applied (see Section~\ref{sec:upuzr_k}).
+
+% -------------------------------------
+\subsection{U-Pu-Zr Thermal Conductivity}
+\label{sec:upuzr_k}
+% -------------------------------------
+
+\subsubsection{Fresh Fuel (Aydin/Karahan 2009)}
+
+The fresh-fuel conductivity is a quadratic function of temperature \cite{karahan2009}:
+
+\begin{equation}
+  k_{fresh}(T) = A + B\,T + C\,T^2 \quad \text{[W/(m\,K)]}
+  \label{eq:k_upuzr}
+\end{equation}
+
+with composition-dependent coefficients:
+
+\begin{align}
+  A &= 17.5\left(\frac{1 - 2.23\,x_{Zr}}{1 + 1.61\,x_{Zr}} - 2.62\,x_{Pu}\right) \\
+  B &= 1.54\times10^{-2}\,\frac{1 + 0.061\,x_{Zr}}{1 + 1.61\,x_{Zr}} \\
+  C &= 9.38\times10^{-6}(1 - 2.7\,x_{Pu})
+\end{align}
+
+where $x_{Pu}$ and $x_{Zr}$ are the weight fractions of plutonium and zirconium.
+
+\subsubsection{Irradiation-Corrected Conductivity (with Na Infiltration)}
+
+During irradiation, two counteracting effects modify the thermal conductivity: fission product damage reduces $k$ while sodium infiltration into open pores increases it.  The Karahan model \cite{karahan2009} is:
+
+\begin{equation}
+  p_{Na} = p_{sod}\,(p_{tot} - p_{gas}), \quad
+  p_{gas}^* = p_{gas} + (p_{tot} - p_{gas})(1 - p_{sod})
+  \label{eq:pna}
+\end{equation}
+
+\begin{equation}
+  P_c = 1 - \frac{3\,p_{Na}}{1 - p_{gas}^*}\cdot
+             \frac{1 - k_{Na}/k_U}{1.163 + 1.837\,k_{Na}/k_U}
+  \label{eq:Pc}
+\end{equation}
+
+\begin{equation}
+  k_{irr} = k_{fresh}\cdot P_c\cdot(1 - p_{gas}^*)^{1.5}
+  \label{eq:k_irr}
+\end{equation}
+
+where $p_{sod}$ is the sodium infiltration fraction (Section~\ref{sec:sinf}), $p_{tot}$ the total porosity (from swelling), $p_{gas}$ the gas-filled porosity, and $k_{Na}$ the sodium thermal conductivity \cite{fink1995}.
+
+\subsubsection{Empirical Burnup Correction (Karahan 2009)}
+
+An alternative simplified correction as a function of burnup $B$ [at\%]:
+
+\begin{equation}
+  k_{corr} = \begin{cases}
+    k_{fresh}\,\dfrac{1 - 0.135B}{1 + 1.7\times0.135B} & B \leq 2\,\text{at\%} \\[6pt]
+    k_{fresh}\,(0.5 + 0.0667(B-2))                     & 2 < B \leq 5\,\text{at\%} \\[6pt]
+    0.7\,k_{fresh}                                       & B > 5\,\text{at\%}
+  \end{cases}
+  \label{eq:k_bup_corr}
+\end{equation}
+
+% -------------------------------------
+\subsection{Sodium Infiltration}
+\label{sec:sinf}
+% -------------------------------------
+
+After the fuel swells into contact with the cladding (gap $\approx 0$), liquid sodium infiltrates the open fuel porosity.  The sodium infiltration fraction $p_{sod}$ is modelled empirically as a function of burnup and the radial position of open porosity \cite{karahan2009}:
+
+\begin{equation}
+  p_{sod} = f(B_{FIMA},\,r/r_{fo},\,\text{gap state})
+  \label{eq:sinf}
+\end{equation}
+
+Sodium infiltration improves thermal conductivity (via Eq.~\eqref{eq:k_irr}).
+
+% -------------------------------------
+\subsection{Gap Conductance Specialization in FRED-M-Na}
+\label{sec:gap_mna}
+% -------------------------------------
+
+FRED-M-Na uses the same platform thermal equation, but with an application- specific gap-conductance composition:
+
+\begin{equation}
+  h_{gap}^{M\text{-}Na} = h_{medium}^{gap\ material} + h_{contact}
+  \label{eq:hgap_mna_modular}
+\end{equation}
+
+The no-jump medium closure is:
+
+\begin{equation}
+  h_{medium}^{M\text{-}Na} = \frac{k_{gap}(T_{avg})}{\delta_{eff}},
+  \quad
+  \delta_{eff} = \max\!\left(\delta,\sqrt{\rho_f^2+\rho_c^2}\right)
+  \label{eq:hgap_mna_medium}
+\end{equation}
+
+The medium term is evaluated with a no-jump conductive closure (effective thermal gap width limited by roughness), while contact conductance is added in closed-gap states.
+
+% -------------------------------------
+\subsection{Zirconium Redistribution}
+\label{sec:zrdist}
+% -------------------------------------
+
+A steep radial temperature gradient drives Zr diffusion from the hot fuel centre toward the cooler periphery.  The redistribution is governed by a thermomigration (Soret) diffusion equation:
+
+\begin{equation}
+  \frac{\partial x_{Zr}}{\partial t}
+  = \frac{1}{r}\frac{\partial}{\partial r}
+    \!\left(r\,D_{Zr}\left(\frac{\partial x_{Zr}}{\partial r}
+    + \frac{x_{Zr}\,Q^*}{R\,T^2}\frac{\partial T}{\partial r}\right)\right)
+  \label{eq:zrdist}
+\end{equation}
+
+where $D_{Zr}$ [m$^2$/s] is the diffusion coefficient, $Q^*$ [J/mol] the heat of transport, and $R$ the gas constant.  These parameters are phase-dependent (Karahan \cite{karahan2009}, from \texttt{Zrdist.for}).  The updated Zr profile changes the local thermal conductivity and phase state.
+
+% -------------------------------------
+\subsection{Fuel Swelling: Solid Fission Products}
+\label{sec:upuzr_swelling}
+% -------------------------------------
+
+For metallic fuel the dominant swelling contribution early in life is from solid fission products.  Ogata (1999) \cite{ogata1999} gives a volumetric swelling rate of approximately 1.5\% per at\% burnup:
+
+\begin{equation}
+  \dot{\varepsilon}^{sw}_{vol} = 0.015 \cdot 100 \cdot \dot{B}_{FIMA}
+  \label{eq:swel_metallic}
+\end{equation}
+
+where $\dot{B}_{FIMA}$ [FIMA/s] is the local fission-rate-based burnup rate per fissile atom.  For FRED-ROD/FRED-OX (and for FRED-M-Na in the \texttt{open} or \texttt{clos} gap-contact states, Section~\ref{sec:upuzr_gap_states}) the swelling enters the mechanics solver isotropically ($\varepsilon^{sw}/3$ per direction), in the same way as for MOX fuel (Section~\ref{sec:swelling}). In the \texttt{soft} contact state the partition is anisotropic instead — see Section~\ref{sec:upuzr_gap_states}.
+
+% -------------------------------------
+\subsection{Gap-Contact States and Anisotropic Swelling (open/soft/clos)}
+\label{sec:upuzr_gap_states}
+% -------------------------------------
+
+Unlike FRED-ROD/FRED-OX's two-state (\texttt{open}/\texttt{closed}) gap model (detected by a SUNDIALS IDA root, shared platform mechanism), U-Pu-Zr metallic fuel's anisotropic axial swelling produces localized fuel-clad contact well before the bulk annular gap geometrically closes. FRED-M-Na therefore tracks a third, intermediate contact state, \texttt{soft}, matching legacy FRED-M's \texttt{Baseir.for}/\texttt{Fanis.for} model. The state is a monotonic ratchet for U-Pu-Zr fuel (\texttt{open} $\to$ \texttt{soft} $\to$ \texttt{clos}, never reverses), detected once per accepted fixed step by checking gap geometry directly (no root-finder --- FRED-M-Na does not use SUNDIALS IDA at all, see Section~\ref{sec:mna_time_integration}), rather than at an exact root-crossing time as FRED-ROD/FRED-OX do:
+
+\begin{equation}
+  \text{flag} = \begin{cases}
+    \texttt{open} & r_{ci} - r_{fo} > \delta_{ruff} \\
+    \texttt{soft} & r_{ci} - r_{loc} \le \delta_{ruff},\ \ r_{loc} = r_{fo} + f_{anis}\,g_0 \\
+    \texttt{clos} & r_{ci} - r_{fo} \le \delta_{ruff}
+  \end{cases}
+  \label{eq:gap_flag}
+\end{equation}
+
+where $f_{anis}$ is the fuel axial anisotropy factor (Fanis.for, function of linear power and Pu content) and $g_0$ the as-fabricated gap. Once \texttt{soft} or \texttt{clos} is reached the local swelling partition switches from isotropic to anisotropic (radial/hoop only, axial suppressed), reflecting that new swelling is redirected into the still-open radial direction rather than axial elongation once localized contact constrains the fuel axially:
+
+\begin{equation}
+  \Delta\varepsilon^{sw}_z, \Delta\varepsilon^{sw}_h, \Delta\varepsilon^{sw}_r =
+  \begin{cases}
+    \left(\max(0,\tfrac{\Delta\varepsilon^{sw}_{vol}}{3}),\ \max(0,\tfrac{\Delta\varepsilon^{sw}_{vol}}{3}),\ \max(0,\tfrac{\Delta\varepsilon^{sw}_{vol}}{3})\right) & \text{open, clos} \\
+    \left(0,\ 0.4995\,\Delta\varepsilon^{sw}_{vol},\ 0.4995\,\Delta\varepsilon^{sw}_{vol}\right) & \text{soft}
+  \end{cases}
+  \label{eq:swel_anisotropy}
+\end{equation}
+
+(the $0.4995$ coefficients sum to $0.999$, not $1.0$ — an intentional $\sim0.1\%$ volume loss/roundoff already present in the legacy Fortran). The flag also selects the mechanical boundary-condition branch at four locations (fuel axial force balance, fuel outer radial BC, cladding axial/interface BC, cladding inner radial BC); \texttt{soft} behaves like \texttt{clos} at the first three (shared axial load / strain continuity) but like \texttt{open} at the cladding inner radial BC, since contact is localized rather than full annular and the fill gas still surrounds the cladding ID. This three-state mechanics is implemented entirely in the FRED-M-Na application layer (a composition-based fork of the shared \texttt{StressStrain} residual class) so it has no effect on FRED-ROD/FRED-OX, which keep the shared two-state model unchanged.
+
+% -------------------------------------
+\subsection{Fission Gas Release (Karahan Empirical Model)}
+\label{sec:upuzr_fgr}
+% -------------------------------------
+
+The empirical FGR fraction for U-Pu-Zr (Karahan 2009 \cite{karahan2009}, from \texttt{FGR.for}) is a function of the average fuel burnup $\bar{B}_{FIMA}$ [at\%]:
+
+\begin{equation}
+  \text{FGR} = \begin{cases}
+    0                           & \bar{B}_{FIMA} < 0.8\,\text{at\%} \\
+    f(\bar{B}_{FIMA})           & 0.8 \leq \bar{B}_{FIMA} \leq 10\,\text{at\%}
+  \end{cases}
+  \label{eq:fgr_metallic}
+\end{equation}
+
+The threshold of 0.8\,at\% corresponds to the burnup at which the fuel first contacts the cladding and gas communication with the plenum opens.
+
+% -------------------------------------
+\subsection{Cladding Wastage by Lanthanide Attack}
+\label{sec:wastage}
+% -------------------------------------
+
+Lanthanide fission products (Ce, Nd, Pr, La) diffuse from the fuel into the HT-9 cladding, forming intermetallic compounds that consume cladding thickness. The wastage model \cite{karahan2009} gives the wastage depth $d_w$ [m] as a function of neutron fluence and interfacial temperature:
+
+\begin{equation}
+  d_w = A_{was}\,\Phi^n \exp\!\left(-\frac{Q_{was}}{R\,T_{int}}\right)
+  \label{eq:wastage}
+\end{equation}
+
+where $A_{was}$, $n$, $Q_{was}$ are empirical constants from the \texttt{Clanth.for} routine \cite{timpanoFredM}, $\Phi$ is the fast neutron fluence, and $T_{int}$ is the fuel-cladding interface temperature.  Wastage reduces the effective cladding thickness and shifts the stress state.
+
+% -------------------------------------
+\subsection{HT-9 Cladding Material}
+\label{sec:ht9}
+% -------------------------------------
+
+The HT-9 ferritic-martensitic steel correlations for thermal conductivity, heat capacity, thermal expansion, Young's modulus, and Poisson ratio are taken from Karahan (2009) \cite{karahan2009} and ported from \texttt{Clanth.for} in the reference Fortran code \cite{timpanoFredM}. No irradiation creep is currently modelled for HT-9.
+
+% -------------------------------------
+\subsection{Sodium Sub-Channel Coolant Model}
+\label{sec:subchannel_mna}
+% -------------------------------------
+
+FRED-M-Na implements a one-dimensional sub-channel model to compute the local bulk coolant temperature and the cladding-to-coolant HTC axially from inlet conditions.  This enables the Robin boundary condition~\eqref{eq:robin_bc} to be applied without a separate T-H code. The last axial coolant temperature of the subchannel is also used to update the gas plenum temperature, which has a significant effect on the gas plenum pressure.
+
+\subsubsection{Axial Coolant Energy Balance}
+
+The coolant temperature rise from the rod inlet ($j=0$) to each axial layer $j$ is determined by a steady-state energy balance on the sub-channel control volume of layer $j$:
+
+\begin{equation}
+  \dot{m}\,c_{p,Na}(T_{co,j})\,\bigl(T_{co,j} - T_{co,j-1}\bigr)
+  = q''_{co,j}\cdot 2\pi r_{co}\,\Delta z_j
+  \label{eq:subchannel_energy}
+\end{equation}
+
+where
+\begin{itemize}
+\item $\dot{m}$ [kg/s] is the sub-channel mass flow rate,
+\item $c_{p,Na}(T)$ [J/(kg\,K)] is the isobaric heat capacity of liquid sodium,
+\item $T_{co,j}$ [K] is the bulk coolant temperature at the outlet of layer $j$ (inlet of layer $j+1$),
+\item $q''_{co,j} = h_{cool,j}\,(T_{out,j} - T_{co,j})$ [W/m$^2$] is the cladding outer surface heat flux evaluated at the current outer cladding temperature $T_{out,j} \equiv T_{n_f+n_c-1,j}$, and
+\item $\Delta z_j$ [m] is the layer height.
+\end{itemize}
+
+The equation is solved sequentially from $j=0$ to $j=n_z-1$, with $T_{co,-1} = T_{inlet}$ prescribed by the user.
+
+\paragraph{Sodium thermophysical properties.} Liquid sodium density, specific heat, and thermal conductivity are evaluated from empirical correlations as functions of temperature. The sodium thermal conductivity is used internally for the gap conductance model (Section~\ref{sec:gap_mna}).
+
+\subsubsection{Cladding-to-Coolant HTC Correlations}
+
+The sub-channel HTC $h_{cool}$ [W/(m$^2$\,K)] is computed from a Nusselt number correlation for sodium-cooled pin bundles:
+\begin{equation}
+  h_{cool} = \frac{k_{Na}(T_{co})\,\mathrm{Nu}}{d_h}
+  \label{eq:htc_def}
+\end{equation}
+where $k_{Na}$ is the sodium thermal conductivity, $\mathrm{Nu}$ the Nusselt number, and $d_h$ the hydraulic diameter of the sub-channel.
+
+Two correlations are available.
+
+\paragraph{Mikityuk (2009) correlation.}
+\begin{equation}
+  \mathrm{Nu}_{Mik} = 0.047\!\left(1 - e^{-3.8(P/D - 1)}\right)
+                      \!\left(\mathrm{Pe}^{0.77} + 250\right)
+  \label{eq:nu_mikityuk}
+\end{equation}
+valid for $1.1 \leq P/D \leq 1.95$ and $30 \leq \mathrm{Pe} \leq 5000$ \cite{mikityuk2009}, where $P/D$ is the pin pitch-to-diameter ratio and $\mathrm{Pe} = \mathrm{Re}\,\mathrm{Pr}$ the Péclet number.
+
+\paragraph{Subbotin (Ushakov) correlation.}
+\begin{equation}
+  \mathrm{Nu}_{Sub} = 7.55\,\frac{P}{D} - 20\left(\frac{P}{D}\right)^{-13}
+                      + \frac{3.67}{90}\,\mathrm{Pe}^{0.56 + 0.19\,P/D}
+  \label{eq:nu_subbotin}
+\end{equation}
+\cite{subbotin1962}.  The Subbotin correlation was used in the legacy FRED-M reference code (option \texttt{COOL\_HTC 2}).
+
+\paragraph{Péclet number.} The Péclet number for sodium flow is:
+\begin{equation}
+  \mathrm{Pe} = \frac{\dot{m}\,d_h}{A_{ch}\,\rho_{Na}}\,
+                \frac{\rho_{Na}\,c_{p,Na}}{k_{Na}}
+              = \frac{\dot{m}\,c_{p,Na}\,d_h}{A_{ch}\,k_{Na}}
+  \label{eq:peclet}
+\end{equation}
+where $A_{ch}$ [m$^2$] is the sub-channel flow area.
+
+\printbibliography[heading=subbibliography,title={References}]
+\end{refsection}

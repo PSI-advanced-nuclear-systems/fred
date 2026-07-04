@@ -1,0 +1,372 @@
+\begin{refsection}
+
+\section{Time Integration: SUNDIALS IDA Solver}
+\label{sec:sundials}
+
+Time evolution of the fuel pin state in FRED-ROD and FRED-OX is delegated to SUNDIALS\,7.1.1 \cite{hindmarsh2005}, specifically to the IDA (Implicit Differential-Algebraic) solver component. FRED-M-Na is the one exception: it does not call SUNDIALS IDA at all, and instead implements its own fixed-step, always-accept backward-Euler driver to replicate a behaviour of the legacy Fortran reference code that IDA's adaptive step-acceptance logic cannot express; see Section~\ref{sec:mna_time_integration} for the details and the reasoning behind the departure.  Everything in the remainder of this chapter (Sections~\ref{sec:dae_formulation}--\ref{sec:error_diagnosis}) describes the SUNDIALS-IDA path used by FRED-ROD and FRED-OX. This chapter is structured as follows.  Section~\ref{sec:dae_formulation} introduces the mathematical form of the problem and describes how the FRED 2.0 solution vector is organised.  Section~\ref{sec:ida_algorithm} describes the IDA algorithm: the BDF time-integration scheme, the Newton nonlinear solver, and the error-control strategy.  Section~\ref{sec:calcic} documents consistent initial condition calculation.
+
+Section~\ref{sec:root_finding} describes IDA's root-finding capability and how FRED 2.0 exploits it for discrete events.  Section~\ref{sec:gap_events} covers gap contact-state transitions in detail.  Section~\ref{sec:tolerances_fred2} discusses tolerance selection.  Section~\ref{sec:error_diagnosis} is a reference for IDA return codes and common failure modes.
+
+
+%--------------------------------------------------------------------------------------------------
+\subsection{Differential-Algebraic Formulation}
+\label{sec:dae_formulation}
+%--------------------------------------------------------------------------------------------------
+
+\subsubsection{Residual Form}
+
+The physical state of a fuel pin at time $t$ is packed as a state vector $\mathbf{y}(t) \in \mathbb{R}^N$ and $\dot{\mathbf{y}}(t) = \mathrm{d}\mathbf{y}/\mathrm{d}t$. IDA does not receive equations in solved form; it is given a residual function $F : \mathbb{R} \times \mathbb{R}^N \times \mathbb{R}^N \to \mathbb{R}^N$ and advances the solution by enforcing
+\begin{equation}
+  F\!\left(t,\,\mathbf{y}(t),\,\dot{\mathbf{y}}(t)\right) = \mathbf{0},
+  \qquad t \in [t_0,\, t_\mathrm{end}].
+  \label{eq:dae_general}
+\end{equation}
+
+Scalar equations $r_k = 0$ fall into two categories:
+\begin{description}
+\item[Ordinary differential equations (ODEs)] $r_k = \dot{y}_k - g_k(t,\mathbf{y}) = 0$, where $\dot{y}_k$ appears explicitly.  The associated variable $y_k$ is a \emph{differential variable} (IDA type identifier $\mathtt{id}_k = 1$).
+\item[Algebraic constraints (AEs)] $r_k = h_k(t,\mathbf{y}) = 0$, where no time derivative appears.  The associated variable $y_k$ is an \emph{algebraic variable} ($\mathtt{id}_k = 0$).
+\end{description}
+
+The arrangement of the solution vector is application specific and is detailed more in the developer guide.
+
+%------------------
+\subsection{The IDA Algorithm}
+\label{sec:ida_algorithm}
+%------------------
+
+\subsubsection{Backward Differentiation Formula}
+\label{subsec:bdf}
+
+IDA advances the solution using a variable-order, variable-step Backward Differentiation Formula (BDF)~\cite{hindmarsh2005}.  The BDF method of order~$q$ approximates the time derivative at $t_n$ as a linear combination of the current and $q$ most recently accepted solution values:
+\begin{equation}
+  \dot{\mathbf{y}}_n \approx \frac{1}{h_n}\sum_{i=0}^{q}\alpha_{q,i}\,\mathbf{y}_{n-i},
+  \label{eq:bdf}
+\end{equation}
+where $h_n = t_n - t_{n-1}$ is the current step size and $\alpha_{q,i}$ are the BDF coefficients determined by the order~$q$.
+
+Substituting~\eqref{eq:bdf} into~\eqref{eq:dae_general} gives the nonlinear corrector equation to be solved at each step:
+\begin{equation}
+  G(\mathbf{y}_n) \equiv
+  F\!\!\left(t_n,\,\mathbf{y}_n,\,
+    \frac{1}{h_n}\sum_{i=0}^{q}\alpha_{q,i}\,\mathbf{y}_{n-i}\right) = \mathbf{0}.
+  \label{eq:corrector}
+\end{equation}
+
+The BDF order $q$ ranges from 1 to 5.  The solver starts at order~1 (backward Euler, BE) and dynamically increases the order when doing so allows a larger step size while still satisfying the local truncation error test.  For $q=1$:
+\begin{equation}
+  \dot{\mathbf{y}}_n \approx \frac{\mathbf{y}_n - \mathbf{y}_{n-1}}{h_n},
+  \label{eq:be}
+\end{equation}
+which is the scheme applied on the very first time step.
+
+\subsubsection{Predictor--Corrector Cycle}
+
+At each step, IDA executes a predictor--corrector cycle.
+
+\paragraph{BDF predictor.} Using the Nordsieck history array built from the $q$ most recently accepted steps, IDA extrapolates the predicted state at $t_n$:
+\begin{equation}
+  \mathbf{y}_n^{(0)} = \sum_{i=0}^{q} A_{q,i}\,\mathbf{y}_{n-i},
+  \qquad
+  \dot{\mathbf{y}}_n^{(0)} = \dot{\mathbf{y}}_{n-1}
+    + \frac{\alpha_{q,0}}{h_n}\bigl(\mathbf{y}_n^{(0)} - \mathbf{y}_{n-1}^{(0)}\bigr),
+  \label{eq:predictor}
+\end{equation}
+where $A_{q,i}$ are the BDF extrapolation coefficients and $\alpha_{q,0}$ is the leading BDF coefficient.
+
+\paragraph{Newton corrector.} Starting from the predicted state $\mathbf{y}_n^{(0)}$, IDA iterates:
+\begin{equation}
+  J^{(m)}\,\delta\mathbf{y}^{(m)} = -G\!\left(\mathbf{y}_n^{(m)}\right),
+  \qquad
+  \mathbf{y}_n^{(m+1)} = \mathbf{y}_n^{(m)} + \delta\mathbf{y}^{(m)},
+  \label{eq:newton}
+\end{equation}
+where the \emph{IDA iteration matrix} is
+\begin{equation}
+  J = \frac{\partial F}{\partial \mathbf{y}}
+    + c_J\,\frac{\partial F}{\partial \dot{\mathbf{y}}},
+  \qquad
+  c_J = \frac{\alpha_{q,0}}{h_n}.
+  \label{eq:jacobian}
+\end{equation}
+At each Newton iterate the time derivative is updated via the BDF consistency relation:
+\begin{equation}
+  \dot{\mathbf{y}}_n^{(m)} = \dot{\mathbf{y}}_n^{(0)}
+    + \frac{\alpha_{q,0}}{h_n}\bigl(\mathbf{y}_n^{(m)} - \mathbf{y}_n^{(0)}\bigr).
+  \label{eq:ydot_update}
+\end{equation}
+
+The factor $c_J$ in~\eqref{eq:jacobian} enters because perturbing $y_k$ by $\delta$ during the Jacobian build simultaneously perturbs $\dot{y}_k$ by $c_J\delta$ through the BDF consistency relation.  For an ODE residual $r_i = \dot{y}_i - g_i(t,\mathbf{y})$, the diagonal Jacobian entry is $J_{ii} = c_J - \partial g_i/\partial y_i$.  For an algebraic residual $r_i = h_i(t,\mathbf{y})$, the $c_J$ term does not appear.
+
+FRED 2.0 does not supply an analytic Jacobian.  IDA approximates $J$ internally using finite-difference perturbations of the residual function, perturbing each column $j$ as
+\begin{equation}
+  J_{:,j} \approx
+    \frac{F\!\left(t,\,\mathbf{y}+\delta_j\mathbf{e}_j,\,
+                    \dot{\mathbf{y}}+c_J\delta_j\mathbf{e}_j\right)
+          - F(t,\mathbf{y},\dot{\mathbf{y}})}{\delta_j},
+  \qquad
+  \delta_j = \sqrt{\varepsilon_\mathrm{mach}}\,\max\!\bigl(|y_j|,\,10^{-6}\bigr),
+  \label{eq:fd_jacobian}
+\end{equation}
+where the simultaneous perturbation of $\dot{\mathbf{y}}$ by $c_J\delta_j$ follows from the BDF consistency relation~\eqref{eq:ydot_update}.
+
+\paragraph{Newton convergence criterion.} Newton iteration is declared converged when the weighted root-mean-square (WRMS) norm of the Newton correction satisfies
+\begin{equation}
+  \bigl\|\delta\mathbf{y}^{(m)}\bigr\|_\mathrm{WRMS} < 0.33,
+  \label{eq:newton_conv}
+\end{equation}
+where the WRMS norm with per-component tolerance weights $w_k$ is
+\begin{equation}
+  \|\mathbf{v}\|_\mathrm{WRMS}
+  = \sqrt{\frac{1}{N}\sum_{k=1}^{N}\left(\frac{v_k}{w_k}\right)^{\!2}},
+  \qquad
+  w_k = \mathtt{rtol}\cdot|y_k| + \mathtt{atol}_k.
+  \label{eq:wrms}
+\end{equation}
+
+\paragraph{Failure modes and step-size recovery.} A step is rejected and IDA retries with a reduced step size ($h \leftarrow h/4$) for three reasons:
+\begin{enumerate}
+\item \textbf{Jacobian ill-posed.}  LU factorisation of $J$ fails (singular or near-singular matrix); Newton aborts immediately.
+\item \textbf{Newton non-convergence.}  The WRMS norm~\eqref{eq:newton_conv} fails to satisfy the convergence criterion within \texttt{IDASetMaxNonlinIters} iterations (default: 4).  IDA halves $h$ and rebuilds the Jacobian before retrying.
+\item \textbf{Non-physical geometry.}  If swelling or creep increments drive a geometric quantity (node radius, ring thickness, axial layer height) to a non-positive value, \texttt{FuelRodState::\allowbreak{}updateGeometry} flags the condition.  The resulting residuals are extremely large or ill-defined, preventing Newton convergence.  IDA reduces $h$ and retries; if $h$ falls below $h_\mathrm{min}$, IDA aborts with \texttt{IDA\_ERR\_FAIL} (Section~\ref{sec:error_diagnosis}).
+\end{enumerate}
+
+\subsubsection{Step-Size and Order Control}
+\label{subsec:step_control}
+
+\paragraph{Local truncation error test.} After a successful Newton solve, IDA estimates the local truncation error (LTE) vector $\mathbf{e}_n$, which is proportional to the Newton correction relative to the predictor.
+
+The step is accepted only if
+\begin{equation}
+  \|\mathbf{e}_n\|_\mathrm{WRMS} \leq 1.
+  \label{eq:lte_test}
+\end{equation}
+Algebraic variables ($\mathtt{id}_k = 0$) are excluded from this norm via \texttt{IDASetSuppressAlg}, because their LTE estimate is $\mathcal{O}(1)$ and independent of $h_n$.
+
+If the error test fails, the step size is reduced as
+\begin{equation}
+  h_\mathrm{new} = h_n \cdot \min\!\left(0.9,\;
+    \|\mathbf{e}_n\|_\mathrm{WRMS}^{-1/(q+1)}\right),
+  \label{eq:hreduce}
+\end{equation}
+and the corrector step is repeated.  If the error test fails more than \texttt{IDASetMaxErrTestFails} times in succession (default: 10), or if $h_n$ falls below the internal minimum $h_\mathrm{min}$, IDA aborts with \texttt{IDA\_ERR\_FAIL}.
+
+\paragraph{Minimum step size.} IDA enforces an internal minimum step size
+\begin{equation}
+  h_\mathrm{min} = \varepsilon_\mathrm{mach} \cdot t_n,
+  \label{eq:hmin}
+\end{equation}
+where $\varepsilon_\mathrm{mach} \approx 2.22 \times 10^{-16}$ is IEEE-754 double-precision machine epsilon. At early times $t_n \approx 0$ this floor approaches zero; in practice SUNDIALS imposes a floor around $10^{-6}$--$10^{-5}$\,s to prevent infinite halving.
+
+\paragraph{Order selection.} At each accepted step, IDA evaluates whether increasing or decreasing $q$ by one would permit a larger step size while still satisfying~\eqref{eq:lte_test}.  The order is selected to maximise $h_n$ subject to the LTE test, up to the maximum order of~5.
+
+\paragraph{Maximum step size.} FRED 2.0 does not enforce an explicit maximum step size.  The step size grows adaptively until limited by the error test or the requested output time.
+
+%--------------------------------------------------------------------------------------------------
+\subsection{Root-Finding and Solver Restarts}
+\label{sec:root_finding}
+%--------------------------------------------------------------------------------------------------
+
+During time integration IDA continuously monitors user-supplied scalar indicator functions
+\begin{equation}
+  g_i\!\left(t,\,\mathbf{y}(t),\,\dot{\mathbf{y}}(t)\right), \quad i = 1,\ldots,n_r,
+  \label{eq:root_fns}
+\end{equation}
+and locates their zero crossings to machine precision using a modified Illinois algorithm~\cite{hindmarsh2005}. When any $g_i$ changes sign during a step, IDA halts, returns \texttt{IDA\_ROOT\_RETURN}, and records which indicators changed sign. The caller inspects the event, updates any discontinuous model state, and---if the residual branch structure has changed---calls \texttt{IDAReInit} to flush the BDF Nordsieck history to order~1, allowing the integrator to restart cleanly on the updated residual branch.
+
+\paragraph{Gap contact-state transitions.} FRED 2.0 exploits this mechanism to detect discrete fuel--cladding contact events. One root function per axial layer monitors the gap width (open-gap regime) or the gas-pressure--contact-pressure difference (closed-gap regime). When a sign change is detected, FRED switches branch logic and performs a structural restart so that IDA rebuilds its BDF history against the updated residual. The root functions, event handlers, and restart procedure are described in Section~\ref{sec:gap_events}.
+
+\paragraph{Non-physical geometry.} Swelling or creep increments that are too large can drive geometric quantities---node radii, ring thicknesses, or axial layer heights---below zero. \texttt{FuelRodState::\allowbreak{}updateGeometry} computes updated geometry from the current strain state and returns \texttt{false} when any such quantity is non-positive. Because residuals depend on these geometric quantities (cross-sectional areas, heat-flux radii, contact surfaces), a non-physical geometry produces residuals that are extremely large or ill-defined. Newton iteration then fails to converge within the allowed number of steps, and IDA responds by halving the step size and retrying with a fresh Jacobian. If the step size falls below $h_\mathrm{min} \approx \varepsilon_\mathrm{mach} \cdot t_n$, IDA aborts with \texttt{IDA\_ERR\_FAIL}. In practice the adaptive step-size control keeps time steps small enough that geometric quantities remain positive throughout the run.
+
+
+%--------------
+\subsection{Consistent Initial Conditions}
+\label{sec:calcic}
+%--------------
+
+IDA requires that $F(t_0, \mathbf{y}_0, \dot{\mathbf{y}}_0) = \mathbf{0}$ before the first step.  The algebraic components of $\mathbf{y}_0$ (gap width, contact pressure, gap conductance, power density, stresses, etc.) must be mutually consistent with the differential components (temperatures, burnup, swelling strains) at $t = t_0$.  Since $\dot{\mathbf{y}}_0$ cannot in general be prescribed analytically, FRED 2.0 uses the SUNDIALS routine \texttt{IDACalcIC} with mode \texttt{IDA\_YA\_YDP\_INIT}, which:
+
+\begin{enumerate}
+\item holds the differential variables $\mathbf{y}_d$ (those with $\mathtt{id}_k = 1$) fixed at their initial values,
+\item simultaneously solves for the consistent algebraic variables $\mathbf{y}_a$ ($\mathtt{id}_k = 0$) and the initial derivatives $\dot{\mathbf{y}}_d(t_0)$ that satisfy~\eqref{eq:dae_general}.
+\end{enumerate}
+
+For example, the heat-equation residual for fuel node $i$ at axial layer $j$ is
+\begin{equation}
+  r_{T,i,j} =
+    \rho_f c_{p,f} A_i \dot{T}_{i,j}
+    - q_{v,j}^{\prime\prime\prime} A_i
+    + q_{i}(t_0)\,2\pi r_i^0
+    - q_{i-1}(t_0)\,2\pi r_{i-1}^0 = 0,
+\end{equation}
+so that \texttt{IDACalcIC} finds the consistent initial temperature time derivative
+\begin{equation}
+  \dot{T}_{i,j}(t_0)
+  = \frac{q_{v,j}^{\prime\prime\prime}(t_0)\,A_i
+          - q_{i}(t_0)\,2\pi r_i^0
+          + q_{i-1}(t_0)\,2\pi r_{i-1}^0}
+         {\rho_f c_{p,f} A_i}.
+\end{equation}
+For purely algebraic constraints (e.g. gap conductance, contact pressure, stresses), the condition simply requires $h_k(t_0, \mathbf{y}_0) = 0$.  The implementation details of \texttt{IDACalcIC} within \texttt{FredSolverBase} are documented in the Developer Guide.
+
+%----------------
+\subsection{Gap Event Detection and Structural Restart}
+\label{sec:gap_events}
+%----------------
+
+\subsubsection{Root-Finding for Contact-State Transitions}
+
+FRED 2.0 uses IDA's built-in root-finding capability to detect discrete fuel--cladding gap contact transitions during time integration. For each axial layer $j = 1, \ldots, n_z$, a single root function $g_j(t)$ is registered. The root function is normalised and changes form depending on the current contact state to make both closure and reopening detectable as sign changes:
+
+\begin{equation}
+  g_j(t) = \begin{cases}
+    \dfrac{\delta_j(t) - \delta_\mathrm{contact}}{\delta_\mathrm{contact}}
+      & \text{if gap is open} \\[10pt]
+    \dfrac{p_\mathrm{gas}(t) - p_{\mathrm{fc},j}(t)}{p_{\mathrm{fc},j}(t) + p_\mathrm{gas}(t) + \varepsilon}
+      & \text{if gap is closed,}
+  \end{cases}
+  \label{eq:root_function}
+\end{equation}
+where $\delta_\mathrm{contact} = \delta_\mathrm{ruff} + \delta_\mathrm{rufc}$ is the combined roughness contact threshold, $p_\mathrm{gas}$ is the plenum gas pressure, and $\varepsilon = 10^{-10}$ prevents division by zero. The normalisation keeps $g_j$ dimensionless and $\mathcal{O}(1)$ near the crossing, which is important for IDA's internal bisection algorithm.
+
+\paragraph{Gap closure.} While the gap is open, $g_j > 0$. As the fuel thermally expands and the geometric clearance $\delta_j$ falls toward $\delta_\mathrm{contact}$, $g_j$ decreases monotonically through zero. IDA reports this as a \emph{falling} crossing; the contact state is switched to closed and a structural restart is performed.
+
+\paragraph{Gap reopening.} While the gap is closed, $g_j < 0$ (gas pressure is less than contact pressure). As $p_{\mathrm{fc},j}$ decays (e.g.\ after a power reduction), $g_j$ rises through zero. IDA reports this as a \emph{rising} crossing; the contact state is switched to open and a structural restart is performed.
+
+\paragraph{Why the contact-state flag is the branch selector.} During IDA's internal Newton iterations, the contact pressure $p_{\mathrm{fc},j}$ is a trial value that may be anywhere on the solution manifold. Using $p_{\mathrm{fc},j} < \varepsilon$ as a branch selector would cause $g_j$ to change form inside a single bisection interval, breaking IDA's sign-change bracket. The contact-state flag is only updated by the event handler (after \texttt{IDASolve} returns \texttt{IDA\_ROOT\_RETURN}), so the root function~\eqref{eq:root_function} is consistent throughout every bisection sweep for each IDA step.
+
+\begin{table}[H]
+  \centering
+  \caption{Root-function sign convention for gap contact-state events.
+           The bracket sign \texttt{glo[j]} at the left endpoint of the bisection interval
+           determines the reported crossing direction.}
+  \label{tab:root_signs}
+  \begin{tabular}{lp{3cm}p{3cm}p{2.5cm}p{3cm}}
+    \toprule
+    Event & Active branch & $g_j$ motion & \texttt{rootsfound} & State change \\
+    \midrule
+    Closure   & gap open & $+\to 0^-$ (falling) & $-1$ & open $\to$ closed \\
+    Reopening & gap closed & $-\to 0^+$ (rising)  & $+1$ & closed $\to$ open \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsubsection{Fixed-Time Forcing Roots}
+
+In addition to the $n_z$ gap-state root functions, FRED applications can register $n_\mathrm{fix}$ forced stop-time root functions
+\begin{equation}
+  g_{n_z + k}(t) = t - t_{\mathrm{fix},k}, \qquad k = 1,\ldots,n_\mathrm{fix},
+  \label{eq:fixed_time_roots}
+\end{equation}
+where $t_{\mathrm{fix},k}$ are user-specified times. These always cross from negative to positive (\texttt{rootsfound} $= +1$) and do not trigger any gap-state update. Their purpose is to force IDA to stop and restart exactly at the specified time, re-establishing the BDF history on a clean temporal boundary --- useful for capturing known transients or power changes that would otherwise be straddled by a large adaptive step.
+
+\subsubsection{Structural Restart After an Event}
+
+Discrete contact transitions change the algebraic regime of the DAE: the residual branch switches between the open-gap and closed-gap formulations. Continuing with a multistep BDF history built for the pre-event branch would degrade convergence and robustness. FRED therefore performs a structural restart at every event:
+
+\begin{enumerate}
+\item \textbf{Query event channels} --- inspect which root functions changed sign and update the contact-state flags.
+\item \textbf{Reinitialise the solver} --- call \texttt{IDAReInit} at the event time $t_\mathrm{event}$ to flush the Nordsieck history and reset to BDF order~1.
+\item \textbf{Restore DAE consistency} --- call \texttt{IDACalcIC} with mode \texttt{IDA\_YA\_YDP\_INIT} to solve for the consistent algebraic variables and initial derivatives on the new residual branch.
+\item \textbf{Resume integration} --- continue from $t_\mathrm{event}$ on the updated branch.
+\end{enumerate}
+
+The contact-state flag must only be modified in the event dispatch loop (after \texttt{IDASolve} returns \texttt{IDA\_ROOT\_RETURN}), never inside the residual or root-function callbacks. IDA invokes these callbacks an unbounded number of times per step, including with speculative trial values; any premature mutation of the contact-state flag permanently corrupts the branch logic for subsequent Newton iterations. The implementation details --- event handlers, sign conventions, and failure-handling policy --- are documented in the Developer Guide.
+
+%-------------------
+\subsection{Tolerances}
+\label{sec:tolerances_fred2}
+%-------------------
+
+IDA uses a mixed absolute/relative tolerance scheme.  For each component $k$ the effective tolerance weight is
+\begin{equation}
+  w_k = \mathtt{rtol} \cdot |y_k| + \mathtt{atol}_k,
+\end{equation}
+and both the Newton convergence test~\eqref{eq:newton_conv} and the LTE test~\eqref{eq:lte_test} use the WRMS norm~\eqref{eq:wrms}.
+
+In FRED 2.0, a single scalar \texttt{rtol} and a single scalar \texttt{atol} (broadcast to all components) are set via \texttt{FredSolverBase::setTolerances}.  Recommended values for production runs are $\mathtt{rtol} = 10^{-5}$ and $\mathtt{atol} = 10^{-7}$.  Tighter tolerances increase accuracy at the cost of smaller step sizes and longer run times. If \texttt{IDACalcIC} fails at $t = 0$, try loosening both tolerances.
+
+%-------------------
+\subsection{Error Diagnosis and Troubleshooting}
+\label{sec:error_diagnosis}
+%-------------------
+
+\subsubsection{Return Codes from \texttt{IDASolve}}
+
+Table~\ref{tab:retval} lists all IDA return codes that can be emitted by \texttt{IDASolve}.
+
+\begin{longtable}{p{1.2cm}p{5cm}p{7.5cm}}
+  \toprule
+  Code & Constant & Meaning \\
+  \midrule
+  \endhead
+  $+2$  & \texttt{IDA\_ROOT\_RETURN}      & A root was found (gap closure, reopening, or fixed time). Execution continues. \\
+  $+1$  & \texttt{IDA\_TSTOP\_RETURN}     & The solver reached the stop time set by \texttt{IDASetStopTime}. \\
+  $0$   & \texttt{IDA\_SUCCESS}           & Normal return; the requested output time was reached. \\
+  $-1$  & \texttt{IDA\_TOO\_MUCH\_WORK}   & More than \texttt{IDASetMaxNumSteps} internal steps taken without reaching the output time. \\
+  $-2$  & \texttt{IDA\_TOO\_MUCH\_ACC}    & Tolerances are too tight for double-precision arithmetic. \\
+  $-3$  & \texttt{IDA\_ERR\_FAIL}         & Error test failed \texttt{IDASetMaxErrTestFails} times in succession, or $h$ reached $h_\mathrm{min}$ without passing. \\
+  $-4$  & \texttt{IDA\_CONV\_FAIL}        & Newton iteration failed to converge after excessive step-size reductions. \\
+  $-5$  & \texttt{IDA\_LINIT\_FAIL}       & Linear solver initialisation failed. \\
+  $-6$  & \texttt{IDA\_LSETUP\_FAIL}      & Jacobian evaluation or LU factorisation failed. \\
+  $-7$  & \texttt{IDA\_LSOLVE\_FAIL}      & Back-substitution failed (singular pivot). \\
+  $-8$  & \texttt{IDA\_RES\_FAIL}         & The residual function returned a non-recoverable error (return value $< 0$). \\
+  $-9$  & \texttt{IDA\_REP\_RES\_ERR}     & The residual function returned a recoverable error ($= 1$) repeatedly. \\
+  $-10$ & \texttt{IDA\_RTFUNC\_FAIL}      & The root-finding function returned a failure. \\
+  $-12$ & \texttt{IDA\_FIRST\_RES\_FAIL}  & The residual function failed at the very first call ($t = t_0$). \\
+  $-14$ & \texttt{IDA\_NO\_RECOVERY}      & The solver could not recover from a combination of failures. \\
+  \bottomrule
+  \caption{\texttt{IDASolve} return codes.}
+  \label{tab:retval}
+\end{longtable}
+
+\subsubsection{\texttt{IDA\_ERR\_FAIL} (retval $= -3$): Error Test Failure}
+
+\paragraph{What happened.} IDA proposed a step, solved the corrector, and evaluated the LTE estimate~\eqref{eq:lte_test}. The error test failed; the step size was halved repeatedly according to~\eqref{eq:hreduce}. After \texttt{IDASetMaxErrTestFails} consecutive failures (default: 10), or once $h$ reached $h_\mathrm{min}$~\eqref{eq:hmin}, IDA aborted.
+
+\paragraph{Root causes.}
+\begin{description}
+\item[Inconsistent initial conditions (most common).] IDA requires $F(t_0,\mathbf{y}_0,\dot{\mathbf{y}}_0) = \mathbf{0}$ before the first step.  If $\mathbf{y}_0$ is not consistent with all algebraic constraints and ODEs, the residual is permanently non-zero at $t_0$ regardless of step size.
+\item[Extreme stiffness.] Widely separated time scales at $t=0$ (fast thermal transients combined with slow creep) can make the Jacobian severely ill-conditioned, preventing Newton convergence at any step size.
+\item[Tolerances inconsistent with problem scale.] If an absolute tolerance $\mathtt{atol}_k$ is much smaller than $|y_k|$ at $t_0$, the WRMS norm is dominated by that component and the error test becomes nearly impossible to satisfy.
+\item[Non-physical initial state.] If material properties or geometry produce a residual that is ill-posed at $t_0$ (zero thermal conductivity, negative gap, etc.), the residual can return NaN or Inf.
+\end{description}
+
+\paragraph{Remedies.}
+\begin{enumerate}
+\item Check initial consistency by printing the residual vector at $t_0$ before the solver starts.
+\item Temporarily loosen absolute tolerances and tighten progressively if the run succeeds.
+\item Increase \texttt{IDASetMaxErrTestFails} to give the solver more attempts at small $h$.
+\item Increase \texttt{IDASetMaxNonlinIters} when the Jacobian is poorly conditioned.
+\item Verify that as-fabricated geometry is consistent (gap width equals cladding inner radius minus fuel outer radius).
+\end{enumerate}
+
+\subsubsection{\texttt{IDA\_TOO\_MUCH\_WORK} (retval $= -1$): Step Limit Exceeded}
+
+The solver took more than \texttt{IDASetMaxNumSteps} internal steps between two consecutive output times. The physics are being integrated correctly but the output interval is too coarse relative to the required step size. Increase \texttt{IDASetMaxNumSteps} (e.g.\ to 5000).
+
+\subsubsection{\texttt{IDA\_CONV\_FAIL} (retval $= -4$): Newton Convergence Failure}
+
+Newton iteration did not converge within \texttt{IDASetMaxNonlinIters} iterations even after the step size was halved multiple times. This typically indicates:
+\begin{itemize}
+\item A nearly singular Jacobian at gap closure or when plasticity activates.
+\item A near-discontinuity in the residual from a sudden power change or contact event not handled by a root function.
+\item Material property correlations returning non-smooth values.
+\end{itemize}
+Increase \texttt{IDASetMaxNonlinIters}, or force the solver to stop and reinitialise exactly at the problematic time using a fixed-time root~\eqref{eq:fixed_time_roots}.
+
+\subsubsection{\texttt{IDA\_LSOLVE\_FAIL} (retval $= -7$): Linear Solver Failure}
+
+The dense LU factorisation of the Jacobian encountered a zero or near-zero pivot, indicating a numerically singular system matrix. In FRED 2.0 this can occur when:
+\begin{itemize}
+\item The contact state flag is inconsistent with the actual gap geometry, causing a conflict between open-gap and closed-gap residual branches.
+\item A stress or strain variable is unconstrained due to a missing boundary condition.
+\end{itemize}
+Verify that the contact-state flags are consistent with the gap geometry at the time of failure.
+
+\subsubsection{\texttt{IDA\_TOO\_MUCH\_ACC} (retval $= -2$): Accuracy Not Achievable}
+
+The requested tolerances are tighter than double-precision arithmetic can provide. This typically manifests after many steps when accumulated round-off error dominates the LTE estimate. Loosen \texttt{rtol} (e.g.\ from $10^{-8}$ to $10^{-6}$) and the corresponding absolute tolerances.
+
+\printbibliography[heading=subbibliography,title={References}]
+\end{refsection}

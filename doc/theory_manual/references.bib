@@ -1,0 +1,205 @@
+% References for the FRED 2.0 Theory Manual.
+% Extracted from source files in src/apps/ and src/platform/.
+
+% ---- Fuel thermal conductivity ----
+
+@article{philipponneau1992,
+  author  = {Philipponneau, Y.},
+  title   = {Thermal conductivity of (U,Pu)O$_{2-x}$ mixed oxide fuel},
+  journal = {Journal of Nuclear Materials},
+  volume  = {188},
+  pages   = {194--197},
+  year    = {1992},
+  doi     = {10.1016/0022-3115(92)90470-7}
+}
+
+% ---- Heat capacity ----
+
+@techreport{popov2000,
+  author      = {Popov, S.~G. and Carbajo, J.~J. and Ivanov, V.~K. and Yoder, G.~L.},
+  title       = {Thermophysical Properties of MOX and UO$_2$ Fuels Including the Effects of Irradiation},
+  institution = {Oak Ridge National Laboratory},
+  number      = {ORNL/TM-2000/351},
+  year        = {2000}
+}
+
+% ---- MATPRO: thermal expansion, Young's modulus, fuel swelling ----
+
+@techreport{hagrman1981,
+  author      = {Hagrman, D.~L. and Reymann, G.~A. and Monroe, R.~E.},
+  title       = {MATPRO-Version 11 (Revision 2): A Handbook of Materials Properties
+                 for Use in the Analysis of Light Water Reactor Fuel Rod Behavior},
+  institution = {US Nuclear Regulatory Commission},
+  number      = {NUREG/CR-0479 Rev.~2, EGG-2023},
+  year        = {1981}
+}
+
+% ---- Gap conductance (gas conduction, temperature-jump model) ----
+
+@techreport{lanning1975,
+  author      = {Lanning, D.~D. and Hann, C.~R.},
+  title       = {Review of Methods Applicable to the Calculation of Gap Conductance
+                 in Zircaloy-Clad {UO$_2$} Fuel Rods},
+  institution = {Battelle Pacific Northwest Laboratories},
+  number      = {BNWL-1894},
+  year        = {1975}
+}
+
+% ---- Gap emissivity recommendation ----
+
+@techreport{struwe2011,
+  author      = {Struwe, D. and Schikorr, M.},
+  title       = {KIT Recommendations for Emissivity Model for Gap Conductance
+                 in {SFR} Fuel Pin Simulations},
+  institution = {Karlsruhe Institute of Technology (KIT)},
+  year        = {2011}
+}
+
+% ---- Fission gas release (MOX) ----
+
+@book{waltar1981,
+  author    = {Waltar, A.~E. and Reynolds, A.~B.},
+  title     = {Fast Breeder Reactors},
+  publisher = {Pergamon Press},
+  year      = {1981}
+}
+
+% ---- AIM1 stainless steel / irradiation creep ----
+
+@article{luzzi2004,
+  author  = {Luzzi, L. and Cognini, L. and Magni, A. and Pozzi, P.},
+  title   = {Thermal and Mechanical Properties of the {AIM1} Austenitic Steel},
+  journal = {Journal of Nuclear Materials},
+  year    = {2004}
+}
+
+% ---- Metallic fuel: general ----
+
+@phdthesis{karahan2009,
+  author = {Karahan, A.},
+  title  = {Modelling of Thermo-Mechanical and Irradiation Behavior of Metallic and
+            Oxide Fuels for Sodium Fast Reactors},
+  school = {Massachusetts Institute of Technology},
+  year   = {2009}
+}
+
+@article{hofman1985,
+  author  = {Hofman, G.~L. and Walters, L.~C. and Bauer, T.~H.},
+  title   = {Metallic fast reactor fuels},
+  journal = {Progress in Nuclear Energy},
+  volume  = {31},
+  number  = {1--2},
+  pages   = {83--110},
+  year    = {1997},
+  doi     = {10.1016/S0149-1970(96)00005-4}
+}
+
+% ---- ALFUS code: fuel swelling and FGR for metallic fuel ----
+
+@incollection{ogata1999,
+  author    = {Ogata, T.},
+  title     = {Metallic Fuels},
+  booktitle = {Comprehensive Nuclear Materials},
+  publisher = {Elsevier},
+  year      = {2012},
+  chapter   = {3.01}
+}
+
+% ---- SAS4A systems code (sodium fast reactor safety) ----
+
+@techreport{sas4a,
+  author      = {Cahalan, J.~E. and Tentner, A.~M. and Morris, E.~E.},
+  title       = {{SAS4A/SASSYS-1} Safety Analysis Code System: User's Guide},
+  institution = {Argonne National Laboratory},
+  number      = {ANL/NE-12/4},
+  year        = {2012}
+}
+
+% ---- SUNDIALS IDA solver ----
+
+@article{hindmarsh2005,
+  author  = {Hindmarsh, A.~C. and Brown, P.~N. and Grant, K.~E. and others},
+  title   = {{SUNDIALS}: Suite of Nonlinear and Differential/Algebraic Equation Solvers},
+  journal = {ACM Transactions on Mathematical Software},
+  volume  = {31},
+  number  = {3},
+  pages   = {363--396},
+  year    = {2005},
+  doi     = {10.1145/1089014.1089020}
+}
+
+% ---- FRED for MOX fuel 
+
+@article{Mikityuk2011FRED,
+  author    = {Konstantin Mikityuk and Andrei Shestopalov},
+  title     = {FRED fuel behaviour code: Main models and analysis of Halden IFA-503.2 tests},
+  journal   = {Nuclear Engineering and Design},
+  year      = {2011},
+  volume    = {241},
+  number    = {7},
+  pages     = {2455--2461},
+  doi       = {10.1016/j.nucengdes.2011.04.033}
+}
+
+@article{Ott2009MOXBenchmark,
+  author    = {Larry J. Ott and Terje Tverberg and Enrico Sartori},
+  title     = {Mixed-oxide (MOX) fuel performance benchmarks},
+  journal   = {Annals of Nuclear Energy},
+  year      = {2009},
+  volume    = {36},
+  number    = {3},
+  pages     = {375--379},
+  doi       = {10.1016/j.anucene.2008.12.019}
+}
+
+@article{Mikityuk2010FAST,
+  author  = {Mikityuk, Konstantin and Krepel, Jiri and Pelloni, Sandro and Chenu, Aurelia and Petkevich, Petr and Chawla, Rakesh},
+  title   = {FAST Code System: Review of Recent Developments and Near-Future Plans},
+  journal = {Journal of Engineering for Gas Turbines and Power},
+  year    = {2010},
+  volume  = {132},
+  number  = {10},
+  pages   = {102915},
+  doi     = {10.1115/1.4000336}
+}
+% ---- FRED-M-Na Fortran reference code ----
+
+@misc{timpanoFredM,
+  author = {Timpano, D.},
+  title  = {{FRED\_M\_OCT24.SRC}: Metallic Fuel Branch of {FRED}},
+  note   = {Internal EPFL source code, forked 2018; updated through 2024},
+  year   = {2024}
+}
+
+% ---- Sodium pin-bundle HTC correlations ----
+
+@article{mikityuk2009,
+  author  = {Mikityuk, K.},
+  title   = {Heat transfer to liquid metal: Review of data and correlations
+             for tube bundles},
+  journal = {Nuclear Engineering and Design},
+  volume  = {239},
+  number  = {4},
+  pages   = {680--687},
+  year    = {2009},
+  doi     = {10.1016/j.nucengdes.2008.12.014}
+}
+
+@article{subbotin1962,
+  author  = {Subbotin, V.~I. and Ivanovsky, M.~N. and Arnoldov, M.~N.},
+  title   = {Some results of an investigation of heat exchange with liquid metals},
+  journal = {Atomnaya Energiya},
+  volume  = {13},
+  pages   = {380},
+  year    = {1962}
+}
+
+% ---- Fink & Leibowitz: sodium properties ----
+
+@techreport{fink1995,
+  author      = {Fink, J.~K. and Leibowitz, L.},
+  title       = {Thermodynamic and Transport Properties of Sodium Liquid and Vapor},
+  institution = {Argonne National Laboratory},
+  number      = {ANL/RE-95/2},
+  year        = {1995}
+}
