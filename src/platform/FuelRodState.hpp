@@ -58,8 +58,37 @@ struct AxialLayerState {
     std::vector<double> sigz;   // clad axial stress [MPa], size nc
     std::vector<double> sig;    // clad effective stress [MPa], size nc
 
-    // ---- Conductivity scaling (irradiation correction, updated per timestep) ----
-    double k_irr_factor = 1.0;
+    // ---- Fuel thermal conductivity (two paths, mutually exclusive) -----------
+    //
+    // HeatConduction::computeResiduals dispatches on whether k_fuel_per_node
+    // is populated:
+    //
+    //   PATH A — scalar (FRED-ROD, FRED-OX, default):
+    //     k_fuel_per_node is empty.
+    //     kf = thermalConductivity(T_half) * k_irr_factor
+    //     T_half = 0.5*(T[i]+T[i+1]) is the CURRENT Newton iterate, so kf
+    //     updates every residual evaluation and the Jacobian sees the live
+    //     temperature dependence of conductivity.
+    //     k_irr_factor is a scalar irradiation-correction ratio (≤1),
+    //     updated once per accepted step in afterAcceptedStep.
+    //
+    //   PATH B — per-node (FRED-M-Na with Zr redistribution):
+    //     k_fuel_per_node[i] holds the absolute irradiated conductivity
+    //     [W/(m·K)] at node i, computed from the local post-redistribution
+    //     composition (zr_wf, pu_wf) and porosity state at node i.
+    //     kf = 0.5*(k_fuel_per_node[i] + k_fuel_per_node[i+1]) for interval i.
+    //     IMPORTANT: k_fuel_per_node is filled once in afterAcceptedStep and is
+    //     FROZEN for the entire Newton solve of the next step — it does NOT
+    //     update with T during Newton iterations (one-step lag on T).  This is
+    //     acceptable because the primary benefit is capturing the radial
+    //     composition gradient k(zr(r)), not the temperature dependence; the
+    //     latter would require re-evaluating the full irradiation model every
+    //     residual call, which would need FredMNaNodeState inside HeatConduction.
+    //
+    // Apps that do not set k_fuel_per_node (FRED-ROD, FRED-OX) use Path A
+    // automatically; no code change is required in those apps.
+    double              k_irr_factor    = 1.0;  // Path A scalar correction [-]
+    std::vector<double> k_fuel_per_node;         // Path B per-node k [W/(m·K)], size nf
 
     // ---- Deformed geometry ----
     std::vector<double> rad;    // current node radii [m], size nf+nc

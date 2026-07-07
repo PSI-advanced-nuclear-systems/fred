@@ -253,4 +253,24 @@ double UPuZr::creepRate(double T_K, double sig_eff,
     return upuzrCreepRate(T_K, sig_eff, sgh, sgz, sgr, gasp_Pa, dotfissden, swopen);
 }
 
+double UPuZr::thermalConductivityLocal(double T, double pu_wf, double zr_wf) const {
+    return upuzrFreshConductivity(T, pu_wf, zr_wf);
+}
+
+double UPuZr::thermalConductivityIrradiatedLocal(double T_K, double pu_wf, double zr_wf,
+                                                   double bup_FIMA,
+                                                   double poros_tot, double poros_gas,
+                                                   double psod) const
+{
+    switch (m_conductivity_model) {
+        case ConductivityModel::EmpiricalBurnup:
+            return thermalConductivityEmpirical(T_K, pu_wf, zr_wf, bup_FIMA);
+        case ConductivityModel::EsfrSimple:
+            return thermalConductivityEsfrSimple(T_K, pu_wf, zr_wf, bup_FIMA);
+        default: // DetailedNaSodium
+            return thermalConductivitySodiumInfiltration(T_K, pu_wf, zr_wf,
+                                                          poros_tot, poros_gas, psod);
+    }
+}
+
 } // namespace fred

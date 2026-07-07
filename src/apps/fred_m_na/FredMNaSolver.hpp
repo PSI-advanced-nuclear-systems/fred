@@ -100,6 +100,7 @@ public:
     const std::vector<double>& fgRel()       const { return m_fgrel_out; }
     const std::vector<double>& gapWidth()    const { return m_gap_out; }
     const std::vector<double>& burnup()      const { return m_bup_out; }
+    const std::vector<double>& burnupAtPct() const { return m_bupave_atpct_out; }
     const std::vector<double>& cladWastage() const { return m_xwast_out; }
 
     // GRSIS swelling outputs (per time step, spatially averaged over layers)
@@ -168,7 +169,7 @@ private:
     GrsisDataMode m_grsis_mode  = GrsisDataMode::FEAST;
 
     std::vector<double> m_gpres_out, m_fggen_out, m_fgrel_out;
-    std::vector<double> m_gap_out, m_bup_out, m_xwast_out;
+    std::vector<double> m_gap_out, m_bup_out, m_bupave_atpct_out, m_xwast_out;
     std::vector<double> m_swtot_out, m_swopen_out;
     std::vector<double> m_burst_out, m_melt_out;
 
@@ -226,7 +227,8 @@ private:
         int64_t ds_gpres   = -1;
         int64_t ds_fggen   = -1;
         int64_t ds_fgrel   = -1;
-        int64_t ds_bup     = -1;
+        int64_t ds_bup        = -1;
+        int64_t ds_bup_atpct  = -1;
         int64_t ds_xwast   = -1;
         int64_t ds_swtot   = -1;
         int64_t ds_swopen  = -1;

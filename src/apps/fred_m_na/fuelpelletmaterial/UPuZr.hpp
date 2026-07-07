@@ -78,6 +78,16 @@ public:
     double puContent() const { return m_pu; }
     double zrContent() const { return m_zr; }
 
+    // Per-node overloads that accept explicit local composition (pu_wf, zr_wf)
+    // rather than the as-fabricated global m_pu/m_zr.  Used by
+    // FredMNaSolver::afterAcceptedStep to compute k_irr_factor from the
+    // post-redistribution Zr/Pu profile instead of the nominal composition.
+    double thermalConductivityLocal(double T, double pu_wf, double zr_wf) const;
+    double thermalConductivityIrradiatedLocal(double T_K, double pu_wf, double zr_wf,
+                                               double bup_FIMA,
+                                               double poros_tot, double poros_gas,
+                                               double psod) const;
+
     // UPuZr-specific extended correlations
     // Full temperature- and density-dependent Poisson's ratio [-]
     double poissonRatioFull(double T_K, double density) const;

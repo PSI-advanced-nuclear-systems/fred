@@ -192,18 +192,21 @@ inline double upuzrFanis(double F, double cont) {
 //
 // Takes per-node arrays and updates zr_at, zr_wf, pu_wf, ur_wf in-place.
 //
-//   nf       : number of fuel radial nodes
-//   T_node[] : centre-of-node temperatures [K], size nf (avg of boundaries)
+// Index convention: all arrays of size nf-1 are indexed by CELL CENTRE i,
+// where cell i spans radial boundaries rad0[i]..rad0[i+1]. This is NOT the
+// same as the nf node-boundary index — c_zr[i] is the Zr atomic density at
+// the centre of annular cell i (between the i-th and (i+1)-th node boundary).
+//
+//   nf       : number of fuel radial nodes (nc = nf-1 cell centres)
+//   T_node[] : centre-of-cell temperatures [K], size nf-1
 //   rad0[]   : initial node boundary radii [m], size nf+1
-//   zr_at[], pu_at[], ur_at[] : per-node atomic fractions (updated in-place)
-//   zr_wf[], pu_wf[], ur_wf[] : per-node weight fractions (updated in-place)
-//   mass[]   : node mass [kg] (fixed)
-//   dvol[]   : node volume [m3] (fixed)
-//   c_zr[]   : per-node Zr atomic density [atom/m3] (updated in-place)
-//   phase[]  : per-node phase strings (size nf-1, for centre nodes)
-//   pfrac[]  : per-node phase fraction (size nf-1)
-//   zr_cont  : nominal Zr weight fraction (global fuel composition)
-//   pu_cont  : nominal Pu weight fraction
+//   zr_at[], pu_at[], ur_at[] : per-cell atomic fractions (updated in-place)
+//   zr_wf[], pu_wf[], ur_wf[] : per-cell weight fractions (updated in-place)
+//   mass[]   : cell mass [kg] (fixed)
+//   dvol[]   : cell volume [m3] (fixed)
+//   c_zr[]   : per-cell Zr atomic density [atom/m3] (updated in-place)
+//   phase[]  : per-cell phase strings (size nf-1)
+//   pfrac[]  : per-cell phase fraction (size nf-1)
 //   dt       : time step [s]
 // -------------------------------------------------------------------------
 inline void upuzrZirconiumRedistribution(
@@ -314,7 +317,7 @@ inline void upuzrZirconiumRedistribution(
                      * (r0 * (Jdi[i] + Jtr[i]) - r1 * (Jdi[i+1] + Jtr[i+1]));
         }
 
-        // Recompute atomic fractions
+        // Recompute atomic fractions from updated c_zr
         for (int i = 0; i < nc; ++i) {
             zr_atoms[i] = c_zr[i] * dvol[i];
             ur_atoms[i] = (mass[i] * MNA_AVOGADRO * 1e3
@@ -327,8 +330,11 @@ inline void upuzrZirconiumRedistribution(
             zr_wf[i] = zr_at[i] * 91.22 / ma_v;
             pu_wf[i] = pu_at[i] * 244.06 / ma_v;
             ur_wf[i] = ur_at[i] * 238.02891 / ma_v;
-            c_zr_old[i] = c_zr[i];
         }
+        // Jacobi update: advance c_zr_old only after all cells in this
+        // sub-step are fully updated, so the next sub-step's flux loop
+        // reads a consistent snapshot (not a mix of old and new values).
+        for (int i = 0; i < nc; ++i) c_zr_old[i] = c_zr[i];
     }
 }
 

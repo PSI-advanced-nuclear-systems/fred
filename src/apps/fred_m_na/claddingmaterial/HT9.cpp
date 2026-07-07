@@ -6,12 +6,15 @@
 // Sources: Clamb.for / Ctexp.for / Celmod.for / Cpoir.for / Ccreep.for /
 //          Cswel.for / Csigy.for from Timpano/EPFL FRED_M_OCT24.SRC.
 //          Karahan (2007), Hofmann (1985).
+//          D.1.4 ESFR-SIMPLE metallic fuel study: performance and safety analysis
+
 
 namespace {
 
 using std::min; using std::max; using std::exp; using std::pow; using std::log;
 
 // Thermal conductivity [W/(m·K)]  — Clamb.for
+// Hofman 1985 thermal conductivity 
 double ht9ThermalConductivity(double T_K) {
     return 29.65 - 6.668e-2 * T_K + 2.184e-4 * T_K * T_K
          - 2.527e-7 * T_K * T_K * T_K + 9.621e-11 * T_K * T_K * T_K * T_K;
@@ -37,9 +40,11 @@ double ht9PoissonRatio(double T_K) {
     return 0.5 * (2.137e5 - 102.74 * tc) / (8.964e4 - 53.78 * tc) - 1.0;
 }
 
-// Specific heat capacity [J/(kg·K)] — approximately constant for ferritic steel
-double ht9HeatCapacity(double /*T_K*/) {
-    return 460.0;
+// Specific heat capacity [J/(kg·K)] 
+// Yamanouchi 1992 
+double ht9HeatCapacity(double T_K) {
+    if (T_K < 800.15) return 416.642 + 0.167*T_K;
+    return 69.910 + 0.600*T_K; 
 }
 
 // Yield stress [Pa]  — Csigy.for

@@ -56,12 +56,30 @@ void HeatConduction::computeResiduals(const AxialLayerState& s,
     //   qf[nf..nf+nc-2]        : clad-clad boundary
     std::vector<double> qf(nr - 1, 0.0);
 
-    // Fuel-fuel boundaries
+    // Fuel-fuel boundaries — conductivity dispatch (see AxialLayerState header).
+    //
+    // Path A (k_fuel_per_node empty): kf re-evaluated at the current T_half every
+    // residual call, so the Newton Jacobian sees the live temperature dependence.
+    // Used by FRED-ROD and FRED-OX, where k(T) is the primary variation and the
+    // irradiation correction is a simple step-lagged scalar (k_irr_factor).
+    //
+    // Path B (k_fuel_per_node non-empty): kf is frozen for the entire Newton solve
+    // at values pre-computed in afterAcceptedStep from the local post-redistribution
+    // composition (zr_wf, pu_wf) and porosity at each node.  The one-step lag on T
+    // is the trade-off for capturing the radial k(zr(r)) profile, which requires
+    // per-node irradiation state that HeatConduction cannot access directly.
+    // Used by FRED-M-Na once Zr redistribution has run at least one accepted step.
     for (int i = 0; i < nf-1; ++i) {
-        double T_half = 0.5 * (s.T[i] + s.T[i+1]);
-        double kf = m_fuel.thermalConductivity(T_half) * s.k_irr_factor;
+        double kf;
+        if (!s.k_fuel_per_node.empty()) {
+            // Path B: average adjacent pre-computed node values for the interface.
+            kf = 0.5 * (s.k_fuel_per_node[i] + s.k_fuel_per_node[i+1]);
+        } else {
+            // Path A: evaluate live at current Newton iterate temperature.
+            double T_half = 0.5 * (s.T[i] + s.T[i+1]);
+            kf = m_fuel.thermalConductivity(T_half) * s.k_irr_factor;
+        }
         double dr = m_geom.drf0;  // uniform fuel spacing
-        // q_flux [W/m2], then multiply by boundary area per unit length 2*pi*r_half
         qf[i] = kf * (s.T[i] - s.T[i+1]) / dr * 2.0 * PI * m_geom.rad_half[i];
     }
 

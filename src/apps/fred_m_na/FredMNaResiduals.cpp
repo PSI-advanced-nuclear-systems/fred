@@ -124,8 +124,9 @@ double FredMNaResiduals::computeGasPressure(const FredMNaRodState& state) const 
 // ---------------------------------------------------------------------------
 void FredMNaResiduals::syncAuxLayerState(int j, const FredMNaLayerState& src) {
     auto& dst = m_state.layers[j];
-    dst.k_irr_factor  = src.k_irr_factor;
-    dst.flag          = src.flag;
+    dst.k_irr_factor     = src.k_irr_factor;
+    dst.k_fuel_per_node  = src.k_fuel_per_node;
+    dst.flag             = src.flag;
     dst.bup_FIMA      = src.bup_FIMA;
     dst.buhard_FIMA   = src.buhard_FIMA;
     dst.xwast         = src.xwast;

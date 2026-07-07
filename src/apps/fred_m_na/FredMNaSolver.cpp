@@ -201,6 +201,7 @@ void FredMNaSolver::storeOutput(double t) {
     }
     m_gap_out.push_back(gap_avg / nz);
     m_bup_out.push_back(bup_avg / nz);
+    m_bupave_atpct_out.push_back(m_state.bupave_FIMA * 100.0);
 
     // Per-layer coolant T, gap, and hgap at this output step
     for (int j = 0; j < nz; ++j) {
@@ -285,7 +286,8 @@ void FredMNaSolver::openAppH5Datasets()
     m_h5mna.ds_gpres   = mk1d(bup, "gpres");
     m_h5mna.ds_fggen   = mk1d(bup, "fggen");
     m_h5mna.ds_fgrel   = mk1d(bup, "fgrel");
-    m_h5mna.ds_bup     = mk1d(bup, "bup");
+    m_h5mna.ds_bup        = mk1d(bup, "bup");
+    m_h5mna.ds_bup_atpct  = mk1d(bup, "bup_atpct");
     m_h5mna.ds_xwast   = mk1d(bup, "xwast");
     m_h5mna.ds_swtot   = mk1d(bup, "swtot");
     m_h5mna.ds_swopen  = mk1d(bup, "swopen");
@@ -309,7 +311,8 @@ void FredMNaSolver::appendAppH5Row()
     app((hid_t)m_h5mna.ds_gpres,  s, m_gpres_out .empty() ? 0.0 : m_gpres_out .back());
     app((hid_t)m_h5mna.ds_fggen,  s, m_fggen_out .empty() ? 0.0 : m_fggen_out .back());
     app((hid_t)m_h5mna.ds_fgrel,  s, m_fgrel_out .empty() ? 0.0 : m_fgrel_out .back());
-    app((hid_t)m_h5mna.ds_bup,    s, m_bup_out   .empty() ? 0.0 : m_bup_out   .back());
+    app((hid_t)m_h5mna.ds_bup,        s, m_bup_out        .empty() ? 0.0 : m_bup_out        .back());
+    app((hid_t)m_h5mna.ds_bup_atpct,  s, m_bupave_atpct_out.empty() ? 0.0 : m_bupave_atpct_out.back());
     app((hid_t)m_h5mna.ds_xwast,  s, m_xwast_out .empty() ? 0.0 : m_xwast_out .back());
     app((hid_t)m_h5mna.ds_swtot,  s, m_swtot_out .empty() ? 0.0 : m_swtot_out .back());
     app((hid_t)m_h5mna.ds_swopen, s, m_swopen_out.empty() ? 0.0 : m_swopen_out.back());
@@ -321,7 +324,7 @@ void FredMNaSolver::trimAppOutputVectors()
 {
     auto trim1 = [](std::vector<double>& v){ if(v.size()>1){ double x=v.back(); v={x}; } };
     trim1(m_gpres_out); trim1(m_fggen_out); trim1(m_fgrel_out);
-    trim1(m_gap_out);   trim1(m_bup_out);   trim1(m_xwast_out);
+    trim1(m_gap_out);   trim1(m_bup_out);   trim1(m_bupave_atpct_out);   trim1(m_xwast_out);
     trim1(m_swtot_out); trim1(m_swopen_out);
     trim1(m_burst_out); trim1(m_melt_out);
 }
@@ -332,7 +335,8 @@ void FredMNaSolver::closeAppH5Datasets()
     if (m_h5mna.ds_gpres  >= 0) H5Dclose((hid_t)m_h5mna.ds_gpres);
     if (m_h5mna.ds_fggen  >= 0) H5Dclose((hid_t)m_h5mna.ds_fggen);
     if (m_h5mna.ds_fgrel  >= 0) H5Dclose((hid_t)m_h5mna.ds_fgrel);
-    if (m_h5mna.ds_bup    >= 0) H5Dclose((hid_t)m_h5mna.ds_bup);
+    if (m_h5mna.ds_bup        >= 0) H5Dclose((hid_t)m_h5mna.ds_bup);
+    if (m_h5mna.ds_bup_atpct  >= 0) H5Dclose((hid_t)m_h5mna.ds_bup_atpct);
     if (m_h5mna.ds_xwast  >= 0) H5Dclose((hid_t)m_h5mna.ds_xwast);
     if (m_h5mna.ds_swtot  >= 0) H5Dclose((hid_t)m_h5mna.ds_swtot);
     if (m_h5mna.ds_swopen >= 0) H5Dclose((hid_t)m_h5mna.ds_swopen);
@@ -470,7 +474,9 @@ void FredMNaSolver::afterAcceptedStep(double t, double dt) {
 
         for (int i = 0; i < nf; ++i) {
             auto& nd = s.nodes[i];
-            auto ph = upuzrPhase(s.T[i], pu, zr);
+            // Use local redistributed zr_wf, not nominal zr, so phase boundaries
+            // reflect the actual Zr content at this node.
+            auto ph = upuzrPhase(s.T[i], pu, nd.zr_wf);
             nd.phase = ph.phase; nd.pfrac = ph.pfrac;
             nd.psod  = sodiumInfiltration(s.bup_FIMA, s.buhard_FIMA,
                                            m_geom.rad0[i], m_geom.rad0[nf-1],
@@ -479,18 +485,24 @@ void FredMNaSolver::afterAcceptedStep(double t, double dt) {
             nd.poros_gas = 0.5 * nd.poros_tot;
         }
 
-        // Irradiation conductivity correction
-        {
-            double T_avg = 0.0;
-            for (int i = 0; i < nf; ++i) T_avg += s.T[i];
-            T_avg /= nf;
-            const auto& nd0 = s.nodes[std::min(nf/2, nf-1)];
-            double k_irr = m_fuel.thermalConductivityIrradiated(
-                T_avg, s.bup_FIMA,
-                nd0.poros_tot, nd0.poros_gas, nd0.psod);
-            double k_fresh = m_fuel.thermalConductivity(T_avg);
-            s.k_irr_factor = (k_fresh > 1e-6) ? k_irr / k_fresh : 1.0;
-        }
+        // Per-node irradiated conductivity for HeatConduction.
+        // Stores k [W/(m·K)] at each fuel node using its local post-redistribution
+        // composition (zr_wf, pu_wf) and porosity state.  HeatConduction averages
+        // adjacent node values — 0.5*(k[i]+k[i+1]) — for each fuel-fuel interval,
+        // so the radial Zr profile from Zr redistribution is captured per interval.
+        // Called twice per layer: once after the initial phase/psod update (using the
+        // previous step's distributed profile), and again after redistribution (using
+        // the just-updated profile) so the next Newton solve sees the current Zr field.
+        auto fillKFuelPerNode = [&]() {
+            s.k_fuel_per_node.resize(nf);
+            for (int i = 0; i < nf; ++i) {
+                const auto& nd = s.nodes[i];
+                s.k_fuel_per_node[i] = m_fuel.thermalConductivityIrradiatedLocal(
+                    s.T[i], nd.pu_wf, nd.zr_wf,
+                    s.bup_FIMA, nd.poros_tot, nd.poros_gas, nd.psod);
+            }
+        };
+        fillKFuelPerNode();
 
         if (m_enable_zr && nf > 1) {
             std::vector<double> T_ctr(nf-1);
@@ -500,7 +512,9 @@ void FredMNaSolver::afterAcceptedStep(double t, double dt) {
             std::vector<std::string> phase_ctr(nf-1);
             std::vector<double> pfrac_ctr(nf-1);
             for (int i = 0; i < nf-1; ++i) {
-                auto ph = upuzrPhase(T_ctr[i], pu, zr);
+                // Use local redistributed zr_at[i], not the nominal global zr,
+                // so phase-dependent D coefficients respond to redistribution.
+                auto ph = upuzrPhase(T_ctr[i], pu, zr_at[i]);
                 phase_ctr[i] = ph.phase;
                 pfrac_ctr[i] = ph.pfrac;
             }
@@ -544,6 +558,30 @@ void FredMNaSolver::afterAcceptedStep(double t, double dt) {
                 s.nodes[i].ur_wf = ur_wf[i];
                 s.nodes[i].c_zr  = c_zr_arr[i];
             }
+            // The redistribution model operates on nf-1 cell centres and
+            // cannot directly update the outermost node. Mirror from nf-2,
+            // consistent with GRSIS handling below.
+            s.nodes[nf-1].zr_at = s.nodes[nf-2].zr_at;
+            s.nodes[nf-1].pu_at = s.nodes[nf-2].pu_at;
+            s.nodes[nf-1].ur_at = s.nodes[nf-2].ur_at;
+            s.nodes[nf-1].zr_wf = s.nodes[nf-2].zr_wf;
+            s.nodes[nf-1].pu_wf = s.nodes[nf-2].pu_wf;
+            s.nodes[nf-1].ur_wf = s.nodes[nf-2].ur_wf;
+            s.nodes[nf-1].c_zr  = s.nodes[nf-2].c_zr;
+
+            // Re-evaluate phase, psod, and per-node conductivity using the
+            // post-redistribution composition.  Zr redistribution changes
+            // nd.zr_wf per node; phase boundaries, sodium infiltration, and
+            // hence the conductivity at each node must all reflect the new profile.
+            for (int i = 0; i < nf; ++i) {
+                auto& nd = s.nodes[i];
+                auto ph = upuzrPhase(s.T[i], pu, nd.zr_wf);
+                nd.phase = ph.phase; nd.pfrac = ph.pfrac;
+                nd.psod  = sodiumInfiltration(s.bup_FIMA, s.buhard_FIMA,
+                                               m_geom.rad0[i], m_geom.rad0[nf-1],
+                                               nd.phase, s.flag);
+            }
+            fillKFuelPerNode();
         }
 
         // GRSIS bubble swelling model (per radial node)
@@ -618,7 +656,7 @@ void FredMNaSolver::afterAcceptedStep(double t, double dt) {
         }
 
         // Push this step's irradiation physics (Zr redistribution, GRSIS,
-        // k_irr_factor, defs_grsis, flag, efsz/efsh/efsr, ...) into the
+        // k_fuel_per_node, defs_grsis, flag, efsz/efsh/efsr, ...) into the
         // residuals' own state — see FredMNaResiduals::syncAuxLayerState for
         // why this is needed.
         m_res.syncAuxLayerState(j, s);
@@ -650,7 +688,7 @@ void FredMNaSolver::run(double tend, double dtout, bool all_steps, int threads) 
     setThreads(threads);
     m_times_out.clear(); m_T_out.clear();
     m_gpres_out.clear(); m_fggen_out.clear(); m_fgrel_out.clear();
-    m_gap_out.clear();   m_bup_out.clear();
+    m_gap_out.clear();   m_bup_out.clear();   m_bupave_atpct_out.clear();
     m_xwast_out.clear(); m_y_out.clear(); m_yp_out.clear();
     m_swtot_out.clear(); m_swopen_out.clear();
     m_burst_out.clear(); m_melt_out.clear();
@@ -1024,10 +1062,22 @@ double FredMNaSolver::newtonSolveLayer(int j, double t_new, double dt,
     std::vector<double> fd_scale(n);
     m_res.fillFdScale(fd_scale.data());
 
+    // yj_old: snapshot of this layer's solution vector at the start of the
+    // current time step (t_new - dt). Fixed throughout the Newton iteration —
+    // it is the known past state used to form the backward-Euler derivative.
     auto residualFn = [&](const double* ytrial, double* rout) {
+        // ypl is the y_dot vector passed into F(t, y, y_dot) = 0.
+        // Newton iterates on ytrial only; ypl is recomputed each evaluation.
         std::vector<double> ypl(n);
-        for (int k = 0; k < n; ++k)
-            ypl[k] = (idj[k] > 0.5) ? (ytrial[k] - yj_old[k]) / dt : 0.0;
+        for (int k = 0; k < n; ++k) {
+            if (idj[k] > 0.5) {
+                // Differential variable: backward-Euler time derivative
+                ypl[k] = (ytrial[k] - yj_old[k]) / dt;
+            } else {
+                // Algebraic variable: no time derivative, pure constraint F(y)=0
+                ypl[k] = 0.0;
+            }
+        }
         m_res.computeLayerResiduals(j, t_new, ytrial, ypl.data(), rout);
     };
 

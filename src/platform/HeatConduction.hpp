@@ -48,6 +48,12 @@ public:
     //   isCladTempOuterBoundaryPrescribed : true -> Dirichlet (default, all existing apps)
     //                                      false -> Robin BC using h_cool
     //   h_cool        : cladding-to-coolant HTC [W/(m2*K)] (only used when Robin)
+    //
+    // Fuel conductivity dispatch (see AxialLayerState for the full description):
+    //   s.k_fuel_per_node empty   → Path A: kf = thermalConductivity(T_half) * k_irr_factor
+    //                                        T_half is the current Newton iterate; kf is live.
+    //   s.k_fuel_per_node non-empty → Path B: kf = 0.5*(k[i]+k[i+1]), frozen for the Newton
+    //                                          solve (filled once in afterAcceptedStep).
     // \coderef{heat_conduction_residual}
     void computeResiduals(const AxialLayerState& s,
                           double T_coolant,
