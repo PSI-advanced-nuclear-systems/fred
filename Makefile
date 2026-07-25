@@ -5,7 +5,7 @@ SHELL = sh
 # Example override: make fred-m-na CONDA_ENV_NAME=calc
 # ===========================================================================
 
-CONDA_BASE      ?= /home/chan_y/miniforge3
+CONDA_BASE      ?= $(HOME)/miniforge3
 CONDA_ENV_NAME  ?= fred-dev
 CONDA_ENV       ?= $(CONDA_BASE)/envs/$(CONDA_ENV_NAME)
 
