@@ -350,7 +350,11 @@ void bind_fred_rod(py::module_& m) {
              py::arg("enable"),
              "Enable (True) or disable (False) the stress-strain block.\n"
              "When disabled, all mechanical state variables are pinned to zero.")
-        .def("run", &FredRodSolver::run,
+        .def("run", [](FredRodSolver& s, double tend, double dtout,
+                       bool all_steps, int threads) {
+                 s.setDtoutSchedule({});   // scalar call: constant interval
+                 s.run(tend, dtout, all_steps, threads);
+             },
              py::arg("tend"), py::arg("dtout"), py::arg("all_steps") = false,
              py::arg("threads") = 1,
              "Run simulation from t=0 to tend [s], output every dtout [s]. "
@@ -358,6 +362,22 @@ void bind_fred_rod(py::module_& m) {
              "threads: number of OpenMP threads for the per-axial-layer "
              "residual loop (default 1 = serial); silently clamped to 1 if "
              "a Python-defined material subclass is in use.")
+        .def("run", [](FredRodSolver& s, double tend, std::vector<double> dtout,
+                       bool all_steps, int threads) {
+                 if (dtout.empty())
+                     throw std::invalid_argument("dtout list must not be empty");
+                 for (double d : dtout)
+                     if (d <= 0.0)
+                         throw std::invalid_argument("all dtout entries must be > 0");
+                 const double dt0 = dtout.front();
+                 s.setDtoutSchedule(std::move(dtout));
+                 s.run(tend, dt0, all_steps, threads);
+             },
+             py::arg("tend"), py::arg("dtout"), py::arg("all_steps") = false,
+             py::arg("threads") = 1,
+             "Run with a variable output-interval schedule: dtout is a list of "
+             "successive intervals [s]. The last entry repeats if the list ends "
+             "before tend. Useful for forcing very small steps early in a run.")
         .def("time_points",           &FredRodSolver::timePoints, "Output time points [s].")
         .def("temperatures",          [](const FredRodSolver& s) {
                  auto& v  = s.temperatures();

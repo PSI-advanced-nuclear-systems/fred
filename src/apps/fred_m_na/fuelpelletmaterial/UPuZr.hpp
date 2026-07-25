@@ -8,7 +8,7 @@ namespace fred {
 enum class ConductivityModel {
     DetailedNaSodium = 1, // f=1  Na-infiltration Maxwell-Eucken (Karahan 2009 + MFUEL)
     EmpiricalBurnup  = 2, // f=2  piecewise empirical burnup degradation
-    EsfrSimple       = 3  // f=3  ESFR-SIMPLE sigmoid fit (requires only burnup)
+    SigmoidBurnup    = 3  // f=3  sigmoid fit in burnup (ESFR-SIMPLE project)
 };
 
 // U-Pu-Zr metallic fuel pellet for FRED-M-Na.
@@ -52,7 +52,7 @@ public:
     // Dispatches to the model selected by setConductivityModel():
     //   DetailedNaSodium — Maxwell-Eucken with Na infiltration (needs poros_tot/gas, psod)
     //   EmpiricalBurnup  — piecewise burnup degradation (needs bup_FIMA)
-    //   EsfrSimple       — ESFR-SIMPLE sigmoid fit (needs bup_FIMA)
+    //   SigmoidBurnup    — sigmoid fit in burnup, ESFR-SIMPLE project (needs bup_FIMA)
     double thermalConductivityIrradiated(double T_K,
                                           double bup_FIMA,
                                           double poros_tot,

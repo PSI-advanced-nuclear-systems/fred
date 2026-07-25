@@ -13,7 +13,7 @@
 //
 // Both criteria return values in [0, 1]; fcrit >= 1 signals failure.
 
-#include "apps/fred_m_na/claddingmaterial/HT9.hpp"
+#include "apps/fred_m_na/FredMNaCladdingMaterial.hpp"
 #include "apps/fred_m_na/fuelpelletmaterial/UPuZr.hpp"
 
 namespace fred {
@@ -52,7 +52,7 @@ struct FredMNaFailureState {
 //
 // Updates `out` in-place.
 // -------------------------------------------------------------------------
-inline void computeFailureCriteria(const HT9&  clad,
+inline void computeFailureCriteria(const FredMNaCladdingMaterial&  clad,
                                     const UPuZr& fuel,
                                     int nz,
                                     const double* T_fuel,

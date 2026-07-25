@@ -3,6 +3,8 @@
 #include "FredMNaState.hpp"
 #include "FredMNaFailure.hpp"
 #include "FredMNaGrsis.hpp"
+#include "FredMNaCladWastage.hpp"
+#include "FredMNaCladSwelling.hpp"
 #include "FredMNaSodiumProperties.hpp"
 #include "FredMNaSubchannelMode.hpp"
 #include "fuelpelletmaterial/UPuZr.hpp"
@@ -46,9 +48,9 @@ namespace fred {
 // -----------------------------------------------------------------------
 class FredMNaSolver : public FredSolverBase {
 public:
-    FredMNaSolver(const FuelRodGeometry& geom,
-                  UPuZr&                 fuel,
-                  HT9&                   clad);
+    FredMNaSolver(const FuelRodGeometry&    geom,
+                  UPuZr&                    fuel,
+                  FredMNaCladdingMaterial&  clad);
 
     // Initial fill-gas pressure setter; setBondPressure is a legacy alias.
     void setInitialGasPressure(double p_MPa);
@@ -59,6 +61,40 @@ public:
 
     void setEnableZrRedistribution(bool b)  { m_enable_zr    = b; }
     void setEnableCladWastage(bool b)       { m_enable_waste = b; }
+    // Select the cladding wastage model (default: PrecipitationKinetics,
+    // the Clanth.for port).  LaTracking solves per-node lanthanide diffusion
+    // (MFUEL App. 9.3) and integrates the interface flux.
+    void setCladWastageModel(CladWastageModel m) { m_wastage_model = m; }
+    // LaTracking only: gate the interface sink on soft/clos contact (default
+    // true, same as the PK model) or keep it active from t=0 (false, MFUEL's
+    // unconditional Dirichlet — transport through the sodium bond).
+    void setLaSinkRequiresContact(bool b)
+        { m_wastage_params.la_sink_requires_contact = b; }
+    // LaTracking only: radial subgrid refinement factor for the La diffusion
+    // solve (default 8; 1 = solve on the thermal grid, under-resolves the
+    // floored-diffusivity boundary layer).
+    void setLaSubgridRefine(int m)
+        { m_wastage_params.la_refine = std::max(1, m); }
+
+    // Cladding void swelling (FredMNaCladSwelling.hpp). Off by default:
+    // this is new physics with no legacy-parity default run depending on
+    // it, and enabling it changes gap-closure timing for every existing
+    // script, so it is strictly opt-in.
+    void setEnableCladSwelling(bool b)      { m_enable_swelling = b; }
+    // Select the cladding void-swelling model (default: Hofmann, Cswel.for
+    // icswel=1). SAS4A is Cswel.for icswel=2, gated on dose >= threshold.
+    void setCladSwellingModel(CladSwellingModel m) { m_swelling_model = m; }
+    // Fast-flux-to-linear-power ratio (fltpow) and fluence->dose conversion
+    // (dconv) — case-specific neutronics calibration constants (Serpent-
+    // derived), NOT universal physical constants. Defaults are Timpano's
+    // Inner-Fuel-Average values; override for other pin/core positions.
+    void setFastFluxCalibration(double fltpow, double dconv) {
+        m_swelling_params.fltpow = fltpow;
+        m_swelling_params.dconv  = dconv;
+    }
+    // SAS4A only: dose threshold [dpa] below which swelling is zero (default 100).
+    void setCladSwellingDoseThreshold(double dpa)
+        { m_swelling_params.dose_threshold_dpa = dpa; }
     void setEnableGrsis(bool b)             { m_enable_grsis = b; }
     void setGrsisDataMode(GrsisDataMode m)  { m_grsis_mode   = m; }
     void setSodiumMode(SodiumMode m)        { m_gap_na.~Sodium(); new (&m_gap_na) Sodium(m); }
@@ -150,7 +186,7 @@ protected:
 
 private:
     UPuZr&  m_fuel;
-    HT9&    m_clad;
+    FredMNaCladdingMaterial& m_clad;
     Sodium  m_gap_na;
 
     FredMNaSodiumProperties                 m_na_props;
@@ -165,6 +201,11 @@ private:
 
     bool         m_enable_zr    = true;
     bool         m_enable_waste = true;
+    CladWastageModel m_wastage_model = CladWastageModel::PrecipitationKinetics;
+    CladWastageParams m_wastage_params{};
+    bool m_enable_swelling = false;
+    CladSwellingModel m_swelling_model = CladSwellingModel::Hofmann;
+    CladSwellingParams m_swelling_params{};
     bool         m_enable_grsis = true;
     GrsisDataMode m_grsis_mode  = GrsisDataMode::FEAST;
 
@@ -234,6 +275,26 @@ private:
         int64_t ds_swopen  = -1;
         int64_t ds_burst   = -1;
         int64_t ds_melt    = -1;
+        // 2D (nsteps, nz*nf) per-layer/per-node datasets, flattened [j*nf+i]
+        int64_t ds_kfuel     = -1;  // thermal/k_fuel   fuel k [W/(m·K)]
+        int64_t ds_psod      = -1;  // thermal/psod     Na infiltration fraction [-]
+        int64_t ds_ptot      = -1;  // thermal/poros_tot  porosity seen by k model [-]
+        int64_t ds_pgas      = -1;  // thermal/poros_gas  gas-filled share [-]
+        int64_t ds_zrwf      = -1;  // burnup/zr_wf     local Zr weight fraction [-]
+        int64_t grp_grsis    = -1;  // /grsis group
+        int64_t ds_sw_close  = -1;  // grsis/swclose    closed-bubble swelling [-]
+        int64_t ds_sw_open   = -1;  // grsis/swopen     open-bubble swelling [-]
+        int64_t ds_sw_sol    = -1;  // grsis/swsol      solid-FP swelling [-]
+        int64_t ds_sw_tot    = -1;  // grsis/swtot      total swelling [-]
+        int64_t ds_c_la      = -1;  // burnup/c_la      La number density [#/m3]
+        // 2D (nsteps, nz) per-layer datasets
+        int64_t ds_xwast_layer = -1; // burnup/xwast_layer  wastage per layer [m]
+        int64_t ds_contact     = -1; // thermal/contact_state 0=open 1=soft 2=clos
+        // Cladding void swelling (FredMNaCladSwelling.hpp)
+        int64_t grp_swelling = -1;  // /swelling group
+        int64_t ds_ecs       = -1;  // swelling/ecs (nsteps, nz*nc) linear swelling strain [-]
+        int64_t ds_neuflue2  = -1;  // swelling/neuflue2 (nsteps, nz) fast fluence [1e22 n/cm2]
+        int64_t ds_clad_dose = -1;  // swelling/dose (nsteps, nz) cladding dose [dpa]
     };
     MnaH5Ctx m_h5mna;
 

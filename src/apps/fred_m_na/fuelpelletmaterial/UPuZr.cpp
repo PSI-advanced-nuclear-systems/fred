@@ -59,7 +59,7 @@ static double thermalConductivityEmpirical(double T_K, double pu, double zr,
 
 // ESFR-SIMPLE sigmoid-fit correction  — Flamb.for, f=3
 // Fitted correction factor as difference of two logistic curves in burnup (at%).
-static double thermalConductivityEsfrSimple(double T_K, double pu, double zr,
+static double thermalConductivitySigmoidBurnup(double T_K, double pu, double zr,
                                                    double bup_FIMA)
 {
     const double ulmb = upuzrFreshConductivity(T_K, pu, zr);
@@ -205,8 +205,8 @@ double UPuZr::thermalConductivityIrradiated(double T_K, double bup_FIMA,
     switch (m_conductivity_model) {
         case ConductivityModel::EmpiricalBurnup:
             return thermalConductivityEmpirical(T_K, m_pu, m_zr, bup_FIMA);
-        case ConductivityModel::EsfrSimple:
-            return thermalConductivityEsfrSimple(T_K, m_pu, m_zr, bup_FIMA);
+        case ConductivityModel::SigmoidBurnup:
+            return thermalConductivitySigmoidBurnup(T_K, m_pu, m_zr, bup_FIMA);
         default: // DetailedNaSodium
             return thermalConductivitySodiumInfiltration(T_K, m_pu, m_zr, poros_tot, poros_gas, psod);
     }
@@ -265,8 +265,8 @@ double UPuZr::thermalConductivityIrradiatedLocal(double T_K, double pu_wf, doubl
     switch (m_conductivity_model) {
         case ConductivityModel::EmpiricalBurnup:
             return thermalConductivityEmpirical(T_K, pu_wf, zr_wf, bup_FIMA);
-        case ConductivityModel::EsfrSimple:
-            return thermalConductivityEsfrSimple(T_K, pu_wf, zr_wf, bup_FIMA);
+        case ConductivityModel::SigmoidBurnup:
+            return thermalConductivitySigmoidBurnup(T_K, pu_wf, zr_wf, bup_FIMA);
         default: // DetailedNaSodium
             return thermalConductivitySodiumInfiltration(T_K, pu_wf, zr_wf,
                                                           poros_tot, poros_gas, psod);

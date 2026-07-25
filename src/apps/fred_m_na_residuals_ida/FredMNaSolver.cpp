@@ -495,8 +495,9 @@ void FredMNaSolver::afterAcceptedStep(double t, double dt) {
             nd.psod  = sodiumInfiltration(s.bup_FIMA, s.buhard_FIMA,
                                            m_geom.rad0[i], m_geom.rad0[nf-1],
                                            nd.phase, s.flag);
-            nd.poros_tot = std::max(0.0, s.efs[i]);
-            nd.poros_gas = 0.5 * nd.poros_tot;
+            // Legacy Baseir.for split: frtot (= sw_gas) / frg (= sw_close)
+            nd.poros_tot = nd.grsis.frtot;
+            nd.poros_gas = nd.grsis.frg;
         }
 
         // Irradiation conductivity correction
@@ -600,8 +601,8 @@ void FredMNaSolver::afterAcceptedStep(double t, double dt) {
                                !s.gapOpen, grsis_p);
                 }
 
-                nd.poros_tot = nd.grsis.swtot;
-                nd.poros_gas = nd.grsis.frtot;
+                nd.poros_tot = nd.grsis.frtot;   // fr_tot = sw_gas   (Baseir.for)
+                nd.poros_gas = nd.grsis.frg;     // fr_g   = sw_close (Baseir.for)
 
                 // Couple GRSIS's total (solid + gas-bubble) swelling into the
                 // mechanical efs ODE: d(efs)/dt = d(swtot)/dt / 3 (volumetric ->
@@ -792,13 +793,16 @@ void FredMNaSolver::applyRestartOneStep(double /*t_start*/) {
 // ---------------------------------------------------------------------------
 void FredMNaSolver::runOneStepLoop(double tend, double dtout, bool all_steps, double t_start) {
     double t = t_start;
-    double t_next_out = t_start + dtout;
-    const double dt_req = (m_step_size > 0.0) ? m_step_size : dtout;
+    // dt_cur: current output interval — the scalar dtout, or the next entry
+    // of the user-supplied schedule (setDtoutSchedule) when one is active.
+    double dt_cur = nextDtout(dtout);
+    double t_next_out = t_start + dt_cur;
 
     std::vector<double> pending_snaps = m_snapshot_timings;
     m_snapshot_count = 0;
 
-    while (t < tend - 1.0e-12 * dtout) {
+    while (t < tend - 1.0e-12 * dt_cur) {
+        const double dt_req = (m_step_size > 0.0) ? m_step_size : dt_cur;
         double dt = std::min(dt_req, t_next_out - t);
         dt = std::min(dt, tend - t);
         if (dt <= 0.0) break;
@@ -815,7 +819,7 @@ void FredMNaSolver::runOneStepLoop(double tend, double dtout, bool all_steps, do
         }
         t = t_new;
 
-        const bool at_dtout = (t >= t_next_out - 1.0e-12 * dtout);
+        const bool at_dtout = (t >= t_next_out - 1.0e-12 * dt_cur);
         bool saved_snap_this_step = false;
 
         if (at_dtout) {
@@ -829,7 +833,7 @@ void FredMNaSolver::runOneStepLoop(double tend, double dtout, bool all_steps, do
 
             if (!m_snapshot_prefix.empty()) {
                 for (auto it = pending_snaps.begin(); it != pending_snaps.end(); ) {
-                    if (std::abs(t - *it) < 0.5 * dtout) {
+                    if (std::abs(t - *it) < 0.5 * dt_cur) {
                         ++m_snapshot_count;
                         std::string fname = m_snapshot_prefix + "_frame"
                             + std::to_string(m_snapshot_count) + ".snapshot";
@@ -842,13 +846,14 @@ void FredMNaSolver::runOneStepLoop(double tend, double dtout, bool all_steps, do
                 }
             }
 
-            t_next_out += dtout;
+            dt_cur = nextDtout(dtout);
+            t_next_out += dt_cur;
         } else if (all_steps) {
             unpackCurrentState();
             storeOutput(t);
         }
 
-        if (t >= tend - 1.0e-12 * dtout) {
+        if (t >= tend - 1.0e-12 * dt_cur) {
             if (!m_snapshot_prefix.empty() && !saved_snap_this_step) {
                 ++m_snapshot_count;
                 std::string fname = m_snapshot_prefix + "_frame"

@@ -14,6 +14,8 @@
 namespace py = pybind11;
 using namespace fred;
 using fred::ConductivityModel;
+using fred::CladWastageModel;
+using fred::CladSwellingModel;
 
 void bind_fred_m_na(py::module_& m) {
 
@@ -24,8 +26,30 @@ void bind_fred_m_na(py::module_& m) {
                "Requires per-node porosity split and sodium infiltration fraction.")
         .value("EmpiricalBurnup", ConductivityModel::EmpiricalBurnup,
                "f=2: Piecewise empirical burnup degradation. Requires only bup_FIMA.")
-        .value("EsfrSimple", ConductivityModel::EsfrSimple,
-               "f=3: ESFR-SIMPLE sigmoid fit in burnup (at%). Requires only bup_FIMA.")
+        .value("SigmoidBurnup", ConductivityModel::SigmoidBurnup,
+               "f=3: sigmoid fit in burnup (at%), from the ESFR-SIMPLE project. Requires only bup_FIMA.")
+        .export_values();
+
+    py::enum_<CladWastageModel>(m, "CladWastageModel",
+        "Cladding wastage model (see FredMNaCladWastage.hpp).")
+        .value("PrecipitationKinetics", CladWastageModel::PrecipitationKinetics,
+               "Clanth.for port: layer-lumped La inventory, sqrt(D/t) "
+               "precipitation-front law, SAS-refitted coefficients (default).")
+        .value("LaTracking", CladWastageModel::LaTracking,
+               "MFUEL App. 9.3: per-node radial La diffusion; wastage = "
+               "time-integrated interface flux / u_sol. Sink active only "
+               "during soft/clos contact.")
+        .export_values();
+
+    py::enum_<CladSwellingModel>(m, "CladSwellingModel",
+        "Cladding void-swelling model for HT-9 (see FredMNaCladSwelling.hpp).")
+        .value("Hofmann", CladSwellingModel::Hofmann,
+               "Cswel.for icswel=1: Hofmann (1985) void-swelling correlation, "
+               "direct function of cumulative fast fluence (default).")
+        .value("SAS4A", CladSwellingModel::SAS4A,
+               "Cswel.for icswel=2: SAS4A User's Manual piecewise-linear "
+               "swelling rate, gated on dose >= 100 dpa, evaluated at "
+               "cladding mid-wall temperature.")
         .export_values();
 
     py::enum_<GrsisDataMode>(m, "GrsisDataMode",
@@ -181,6 +205,37 @@ void bind_fred_m_na(py::module_& m) {
         .def("set_grsis_data_mode",          &FredMNaSolver::setGrsisDataMode,
              py::arg("mode"),
              "Select GRSIS parameter set: GrsisDataMode.FEAST (default) or .GRSIS.")
+        .def("set_cladding_wastage_model",   &FredMNaSolver::setCladWastageModel,
+             py::arg("model"),
+             "Select cladding wastage model: CladWastageModel.PrecipitationKinetics "
+             "(default) or .LaTracking.")
+        .def("set_la_sink_requires_contact", &FredMNaSolver::setLaSinkRequiresContact,
+             py::arg("requires_contact"),
+             "LaTracking only. True (default): interface sink active only during "
+             "soft/clos contact. False: sink active from t=0 (MFUEL's "
+             "unconditional Dirichlet BC, transport through the sodium bond).")
+        .def("set_la_subgrid_refine", &FredMNaSolver::setLaSubgridRefine,
+             py::arg("refine"),
+             "LaTracking only. Radial subgrid refinement for the La diffusion "
+             "solve (default 8). 1 = thermal grid (under-resolves the "
+             "interface boundary layer).")
+        .def("set_enable_clad_swelling",     &FredMNaSolver::setEnableCladSwelling,
+             py::arg("enable"),
+             "Enable/disable cladding void swelling (default: disabled — new "
+             "physics, opt-in so existing scripts are unaffected).")
+        .def("set_clad_swelling_model",      &FredMNaSolver::setCladSwellingModel,
+             py::arg("model"),
+             "Select cladding swelling model: CladSwellingModel.Hofmann "
+             "(default) or .SAS4A.")
+        .def("set_fast_flux_calibration",    &FredMNaSolver::setFastFluxCalibration,
+             py::arg("fltpow"), py::arg("dconv"),
+             "Case-specific neutronics calibration: fltpow = fast-flux/linear-power "
+             "ratio (Serpent-derived; default is Timpano's Inner-Fuel-Average value "
+             "6.13209e14), dconv = fluence[1e22 n/cm2]->dose[dpa] conversion "
+             "(default 4.0, SAS User's Manual, Superphenix).")
+        .def("set_clad_swelling_dose_threshold", &FredMNaSolver::setCladSwellingDoseThreshold,
+             py::arg("dpa"),
+             "SAS4A only. Dose threshold [dpa] below which swelling is zero (default 100).")
         .def("set_sodium_mode",              &FredMNaSolver::setSodiumMode,
              py::arg("mode"),
              "Select sodium gap conductance mode: SodiumMode.TDependent (default) or .Constant.")
@@ -188,11 +243,32 @@ void bind_fred_m_na(py::module_& m) {
              py::arg("filename"),
              "Path to HDF5 output file. When set, each output step is written to the file\n"
              "immediately (crash-safe) and in-memory vectors are trimmed to 1 entry.")
-        .def("run", &FredMNaSolver::run,
+        .def("run", [](FredMNaSolver& s, double tend, double dtout,
+                       bool all_steps, int threads) {
+                 s.setDtoutSchedule({});   // scalar call: constant interval
+                 s.run(tend, dtout, all_steps, threads);
+             },
              py::arg("tend"), py::arg("dtout"), py::arg("all_steps") = false,
              py::arg("threads") = 1,
              "threads: number of OpenMP threads for the per-axial-layer Newton "
              "solve (default 1 = serial).")
+        .def("run", [](FredMNaSolver& s, double tend, std::vector<double> dtout,
+                       bool all_steps, int threads) {
+                 if (dtout.empty())
+                     throw std::invalid_argument("dtout list must not be empty");
+                 for (double d : dtout)
+                     if (d <= 0.0)
+                         throw std::invalid_argument("all dtout entries must be > 0");
+                 const double dt0 = dtout.front();
+                 s.setDtoutSchedule(std::move(dtout));
+                 s.run(tend, dt0, all_steps, threads);
+             },
+             py::arg("tend"), py::arg("dtout"), py::arg("all_steps") = false,
+             py::arg("threads") = 1,
+             "Run with a variable output-interval schedule: dtout is a list of "
+             "successive intervals [s]. The last entry repeats if the list ends "
+             "before tend. When no explicit step size is set, internal "
+             "backward-Euler steps follow the schedule too.")
         .def("times",               &FredMNaSolver::times)
         .def("gas_pressure",        &FredMNaSolver::gasPressure)
         .def("fg_generated",        &FredMNaSolver::fgGen)

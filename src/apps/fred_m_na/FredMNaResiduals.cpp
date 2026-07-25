@@ -44,15 +44,15 @@ namespace fred {
 // ---------------------------------------------------------------------------
 // Construction
 // ---------------------------------------------------------------------------
-FredMNaResiduals::FredMNaResiduals(const FuelRodGeometry& geom,
-                                    UPuZr&                 fuel,
-                                    const HT9&             clad,
-                                    GapMaterial&           gap_mat,
-                                    double                 coolant_pressure_MPa)
+FredMNaResiduals::FredMNaResiduals(const FuelRodGeometry&        geom,
+                                    UPuZr&                         fuel,
+                                    const FredMNaCladdingMaterial& clad,
+                                    GapMaterial&                   gap_mat,
+                                    double                         coolant_pressure_MPa)
     : RodResiduals(geom, fuel, clad, gap_mat, coolant_pressure_MPa,
                    /*neq_irr=*/1 + geom.nf + geom.nc),
       m_fuel   (fuel),
-      m_ht9    (clad),
+      m_clad_mna(clad),
       m_gap_mat(gap_mat),
       m_state  (geom.nf, geom.nc, geom.nz),
       m_mech_mna(geom, fuel, clad)
@@ -136,6 +136,7 @@ void FredMNaResiduals::syncAuxLayerState(int j, const FredMNaLayerState& src) {
     dst.efsz          = src.efsz;
     dst.efsh          = src.efsh;
     dst.efsr          = src.efsr;
+    dst.ecs           = src.ecs;   // clad void swelling (FredMNaCladSwelling.hpp)
     for (int i = 0; i < m_geom.nf; ++i) {
         auto&       nd  = dst.nodes[i];
         const auto& snd = src.nodes[i];
@@ -511,10 +512,10 @@ void FredMNaResiduals::computeIrradiationResiduals(int j,
     // Clamp tensile stress to zero: pow(negative, non-integer) is NaN.
     for (int i = 0; i < m_geom.nc; ++i) {
         const double sigh_Pa = std::max(0.0, s.sigh[i]) * 1.0e6;
-        const double rate    = m_ht9.creepRate(s.T[m_geom.nf + i],
-                                                sigh_Pa,
-                                                s.qqv,
-                                                m_elapsed_time);
+        const double rate    = m_clad_mna.creepRate(s.T[m_geom.nf + i],
+                                                     sigh_Pa,
+                                                     s.qqv,
+                                                     m_elapsed_time);
         rj[offEc(i)] = ypj[offEc(i)] - rate;
     }
 }

@@ -149,17 +149,23 @@ void FredMNaStressStrain::computeResiduals(const FredMNaLayerState& s,
         r[n++] = s.et[i] - et_target;
     }
 
-    // --- Clad Hooke's law (thermo-elastic + creep) ---
+    // --- Clad Hooke's law (thermo-elastic + creep + void swelling) ---
+    // Void swelling (ecs, FredMNaCladSwelling.hpp) is a true isotropic
+    // dilation, wired identically to thermal expansion et in all three
+    // equations — unlike creep ec, which is deviatoric (hence its
+    // -1 / +0.5 / +0.5 split) — matching legacy Baseir.for's
+    // b(ir) = yng*(e_p + e_creep + et + ecs) applied uniformly to
+    // eh, er, and ez.
     for (int i = 0; i < nc; ++i) {
-        double eel = s.eh[i] - s.et[i] - s.ec[i];
+        double eel = s.eh[i] - s.et[i] - s.ecs[i] - s.ec[i];
         r[n++] = Ec[i]*eel - s.sigh[i] + nuC[i]*(s.sigr[i] + s.sigz[i]);
     }
     for (int i = 0; i < nc; ++i) {
-        double eel = s.er[i] - s.et[i] + 0.5*s.ec[i];
+        double eel = s.er[i] - s.et[i] - s.ecs[i] + 0.5*s.ec[i];
         r[n++] = Ec[i]*eel - s.sigr[i] + nuC[i]*(s.sigh[i] + s.sigz[i]);
     }
     for (int i = 0; i < nc; ++i) {
-        double eel = s.ez - s.et[i] + 0.5*s.ec[i];
+        double eel = s.ez - s.et[i] - s.ecs[i] + 0.5*s.ec[i];
         r[n++] = Ec[i]*eel - s.sigz[i] + nuC[i]*(s.sigh[i] + s.sigr[i]);
     }
 

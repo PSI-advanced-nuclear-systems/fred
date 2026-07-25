@@ -88,7 +88,7 @@ clad = fred.HT9(reference_density=7634.5)
 solver = fred.FredMNaSolver(g, fuel, clad)
 solver.set_grsis_data_mode(fred.GrsisDataMode.FEAST)
 solver.set_sodium_mode(fred.SodiumMode.TDependent)
-solver.set_conductivity_model(fred.ConductivityModel.EsfrSimple)
+solver.set_conductivity_model(fred.ConductivityModel.SigmoidBurnup)
 solver.set_power_density_history_per_layer(power_times, power_qqv)
 solver.set_coolant_channel(
     dhyd=3.887e-3, xarea=3.301e-5, flowr=0.162,

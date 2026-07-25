@@ -15,19 +15,19 @@ using std::min; using std::max; using std::exp; using std::pow; using std::log;
 
 // Thermal conductivity [W/(m·K)]  — Clamb.for
 // Hofman 1985 thermal conductivity 
-double ht9ThermalConductivity(double T_K) {
+double ThermalConductivity(double T_K) {
     return 29.65 - 6.668e-2 * T_K + 2.184e-4 * T_K * T_K
          - 2.527e-7 * T_K * T_K * T_K + 9.621e-11 * T_K * T_K * T_K * T_K;
 }
 
 // Linear thermal expansion strain relative to 293.15 K [-]  — Ctexp.for (Karahan 2007)
-double ht9ThermalExpansionStrain(double T_K) {
+double ThermalExpansionStrain(double T_K) {
     return 1.0e-2 * (-0.2191 + 5.678e-4 * T_K + 8.111e-7 * T_K * T_K
                      - 2.576e-10 * T_K * T_K * T_K);
 }
 
 // Young's modulus [Pa]  — Celmod.for
-double ht9ElasticModulus(double T_K) {
+double ElasticModulus(double T_K) {
     const double tc = min(T_K - 273.15, 800.0);
     return 2.137e11 - 1.0274e8 * (tc + 273.15);
 }
@@ -35,20 +35,20 @@ double ht9ElasticModulus(double T_K) {
 // Poisson's ratio [-]  — Cpoir.for
 // Note: the base CladdingMaterial::poissonRatio() takes no T argument.
 // This helper is provided for direct use where temperature-dependence matters.
-double ht9PoissonRatio(double T_K) {
+double PoissonRatio(double T_K) {
     const double tc = min(T_K - 273.15, 800.0);
     return 0.5 * (2.137e5 - 102.74 * tc) / (8.964e4 - 53.78 * tc) - 1.0;
 }
 
 // Specific heat capacity [J/(kg·K)] 
 // Yamanouchi 1992 
-double ht9HeatCapacity(double T_K) {
+double HeatCapacity(double T_K) {
     if (T_K < 800.15) return 416.642 + 0.167*T_K;
     return 69.910 + 0.600*T_K; 
 }
 
 // Yield stress [Pa]  — Csigy.for
-double ht9YieldStress(double T_K) {
+double YieldStress(double T_K) {
     static const double temht9[] = {293.15, 673.15, 773.15, 873.15, 973.15,
                                      1073.15, 1173.15, 1273.15, 1683.15, 1708.15};
     static const double syht9[]  = {6.69e8, 6.40e8, 5.22e8, 4.885e8, 3.69e8,
@@ -66,15 +66,15 @@ double ht9YieldStress(double T_K) {
 }
 
 // Meyer hardness [Pa]  — Tabor relation: H ~ 3 * sigma_y
-double ht9MeyerHardness(double T_K) {
-    return 3.0 * ht9YieldStress(T_K);
+double MeyerHardness(double T_K) {
+    return 3.0 * YieldStress(T_K);
 }
 
 // Creep strain rate [1/s]  — Ccreep.for
 //   sig_Pa  : effective stress [Pa]
 //   qqv     : volumetric power density [W/m3] (neutron flux proxy)
 //   time_s  : elapsed time [s]
-double ht9CreepRate(double T_K, double sig_Pa, double qqv, double time_s) {
+double CreepRate(double T_K, double sig_Pa, double qqv, double time_s) {
     const double sg = sig_Pa * 1.0e-6; // MPa
     // Neutron flux proxy: nflux = qqv * 8.4e5 * 1e-22  [10^22 n/cm2/s]
     const double nflux = qqv * 8.4e5 * 1.0e-22;
@@ -99,7 +99,7 @@ double ht9CreepRate(double T_K, double sig_Pa, double qqv, double time_s) {
 
 // Void swelling volumetric strain [-]  — Cswel.for model 1, Hofmann (1985)
 //   neuflue : neutron fluence [10^22 n/cm^2]
-double ht9VoidSwelling(double neuflue, double T_K) {
+double VoidSwelling(double neuflue, double T_K) {
     const double ttt  = T_K - 273.15;
     const double R    = 0.085 * exp(-1.0e-4 * (ttt - 400.0) * (ttt - 400.0));
     const double D    = 0.01 * 0.15 * (1.0 - exp(-0.1 * neuflue));
@@ -112,10 +112,49 @@ double ht9VoidSwelling(double neuflue, double T_K) {
 // Burst stress [Pa]  — Csigb.for (HT-9 branch, bug-corrected)
 // Fortran: ht9_tem = (tk-tk-200)/200  where tk-tk = 0 → always -1 (bug).
 // Corrected: ht9_tem = (T_Celsius - 200) / 200
-double ht9BurstStress(double T_K, double ssy0) {
+double BurstStress(double T_K, double ssy0) {
     const double T_C    = T_K - 273.15;
     const double factor = std::tanh((T_C - 200.0) / 200.0);
     return ssy0 * (1.1 - 0.1 * factor);
+}
+
+// Void swelling RATE [1/s] — Cswel.for icswel=2, SAS4A User's Manual
+// piecewise-linear-in-T coefficient table.  The dose >= 100 dpa onset gate
+// is applied generically by the caller (FredMNaSolver); this function
+// returns the material's own T-dependent rate curve unconditionally.
+double SAS4ASwellingRate(double T_K, double flux_1e22, double dconv) {
+    double coeff;
+    if (T_K <= 673.0)
+        coeff = 8.33e-5 + (1.0e-4  - 8.33e-5) * (T_K - 623.0) / 50.0;
+    else if (T_K <= 723.0)
+        coeff = 1.0e-4  + (8.33e-5 - 1.0e-4)  * (T_K - 673.0) / 50.0;
+    else if (T_K <= 773.0)
+        coeff = 8.33e-5 + (5.0e-5  - 8.33e-5) * (T_K - 723.0) / 50.0;
+    else if (T_K <= 823.0)
+        coeff = 7.5e-5  + (2.5e-5  - 7.5e-5)  * (T_K - 773.0) / 50.0;
+    else if (T_K <= 873.0)
+        coeff = 5.0e-5  + (1.25e-5 - 5.0e-5)  * (T_K - 823.0) / 50.0;
+    else
+        return 0.0;
+    return coeff * flux_1e22 * dconv;
+}
+
+// Cladding wastage correlations — Clanth.for (precipitation kinetics) and
+// MFUEL App. 9.3 (lanthanide tracking).  Diffusion coefficients are pure
+// Arrhenius; the shared irradiation-enhanced-diffusivity floor (T_floor,
+// ~800 K) is applied generically by the scheme code in
+// FredMNaCladWastage.hpp before calling these, not here.
+constexpr double kWastagePkD0   = 1632573.01020072;  // [m2/s] Clanth.for fit
+constexpr double kWastagePkQ    = 333962.40004088;   // [J/mol]
+constexpr double kWastageLaD0   = 5.0;               // [m2/s] MFUEL App. 9.3
+constexpr double kWastageLaQ    = 250.0e3;           // [J/mol]
+constexpr double kWastageUSol   = 6.4e27;            // [#/m3] HT-9 (D9 would be 0.5e27)
+
+double WastageDiffusionPK(double T_K) {
+    return kWastagePkD0 * exp(-kWastagePkQ / (8.314 * T_K));
+}
+double WastageDiffusionLaTracking(double T_K) {
+    return kWastageLaD0 * exp(-kWastageLaQ / (8.314 * T_K));
 }
 
 } // anonymous namespace
@@ -126,30 +165,30 @@ namespace fred {
 HT9::HT9(double rho0) : m_rho0(rho0) {}
 
 double HT9::thermalConductivity(double T) const {
-    return ht9ThermalConductivity(T);
+    return ThermalConductivity(T);
 }
 
 double HT9::heatCapacity(double T) const {
-    return ht9HeatCapacity(T);
+    return HeatCapacity(T);
 }
 
 double HT9::thermalExpansionStrain(double T) const {
-    return ht9ThermalExpansionStrain(T);
+    return ThermalExpansionStrain(T);
 }
 
 // Returns E in MPa (CladdingMaterial interface unit).
 double HT9::youngsModulus(double T) const {
-    return ht9ElasticModulus(T) * 1.0e-6;
+    return ElasticModulus(T) * 1.0e-6;
 }
 
-// Returns mid-temperature average; use the static ht9PoissonRatio helper
+// Returns mid-temperature average; use the static PoissonRatio helper
 // directly when temperature-dependence is needed.
 double HT9::poissonRatio() const {
     return 0.28;
 }
 
 double HT9::meyerHardness(double T) const {
-    return ht9MeyerHardness(T);
+    return MeyerHardness(T);
 }
 
 double HT9::referenceDensity() const { return m_rho0; }
@@ -157,24 +196,40 @@ double HT9::referenceDensity() const { return m_rho0; }
 // HT9-specific extended methods (beyond CladdingMaterial interface).
 
 double HT9::yieldStress(double T) const {
-    return ht9YieldStress(T);
+    return YieldStress(T);
 }
 
 // sig_Pa  : effective stress [Pa]
 // qqv     : volumetric power density [W/m3] (neutron flux proxy)
 // time_s  : elapsed time [s]
 double HT9::creepRate(double T, double sig_Pa, double qqv, double time_s) const {
-    return ht9CreepRate(T, sig_Pa, qqv, time_s);
+    return CreepRate(T, sig_Pa, qqv, time_s);
 }
 
 // neuflue : neutron fluence [10^22 n/cm^2]
 double HT9::voidSwelling(double neuflue, double T) const {
-    return ht9VoidSwelling(neuflue, T);
+    return VoidSwelling(neuflue, T);
 }
 
 // ssy0 : yield stress [Pa] at the same temperature (from yieldStress(T))
 double HT9::burstStress(double T_K, double ssy0) const {
-    return ht9BurstStress(T_K, ssy0);
+    return BurstStress(T_K, ssy0);
 }
+
+double HT9::voidSwellingSAS4ARate(double T_K, double flux_1e22,
+                                   double dconv, double dose_dpa) const {
+    (void)dose_dpa;  // onset gate applied by the caller
+    return SAS4ASwellingRate(T_K, flux_1e22, dconv);
+}
+
+double HT9::wastageDiffusionPK(double T_K) const {
+    return WastageDiffusionPK(T_K);
+}
+double HT9::wastageSolubilityFuel() const { return 0.0; }
+double HT9::wastageSolubilityClad() const { return 0.1; }
+double HT9::wastageDiffusionLaTracking(double T_K) const {
+    return WastageDiffusionLaTracking(T_K);
+}
+double HT9::wastageUptakeCapacity() const { return kWastageUSol; }
 
 } // namespace fred

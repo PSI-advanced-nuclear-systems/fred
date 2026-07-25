@@ -430,30 +430,6 @@
 
 \refsection{5}
   \datalist[entry]{none/global//global/global/global}
-    \entry{timpanoFredM}{misc}{}{}
-      \name{author}{1}{}{%
-        {{hash=35772bce8c216ad5356e52e957334c64}{%
-           family={Timpano},
-           familyi={T\bibinitperiod},
-           given={D.},
-           giveni={D\bibinitperiod}}}%
-      }
-      \strng{namehash}{35772bce8c216ad5356e52e957334c64}
-      \strng{fullhash}{35772bce8c216ad5356e52e957334c64}
-      \strng{fullhashraw}{35772bce8c216ad5356e52e957334c64}
-      \strng{bibnamehash}{35772bce8c216ad5356e52e957334c64}
-      \strng{authorbibnamehash}{35772bce8c216ad5356e52e957334c64}
-      \strng{authornamehash}{35772bce8c216ad5356e52e957334c64}
-      \strng{authorfullhash}{35772bce8c216ad5356e52e957334c64}
-      \strng{authorfullhashraw}{35772bce8c216ad5356e52e957334c64}
-      \field{sortinit}{1}
-      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
-      \field{labelnamesource}{author}
-      \field{labeltitlesource}{title}
-      \field{note}{Internal EPFL source code, forked 2018; updated through 2024}
-      \field{title}{{FRED\_M\_OCT24.SRC}: Metallic Fuel Branch of {FRED}}
-      \field{year}{2024}
-    \endentry
     \entry{karahan2009}{thesis}{}{}
       \name{author}{1}{}{%
         {{hash=c69b33b230bec8d31f85263ad0b4717e}{%
@@ -473,13 +449,37 @@
       \strng{authornamehash}{c69b33b230bec8d31f85263ad0b4717e}
       \strng{authorfullhash}{c69b33b230bec8d31f85263ad0b4717e}
       \strng{authorfullhashraw}{c69b33b230bec8d31f85263ad0b4717e}
-      \field{sortinit}{2}
-      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{title}{Modelling of Thermo-Mechanical and Irradiation Behavior of Metallic and Oxide Fuels for Sodium Fast Reactors}
       \field{type}{phdthesis}
       \field{year}{2009}
+    \endentry
+    \entry{timpanoFredM}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=35772bce8c216ad5356e52e957334c64}{%
+           family={Timpano},
+           familyi={T\bibinitperiod},
+           given={D.},
+           giveni={D\bibinitperiod}}}%
+      }
+      \strng{namehash}{35772bce8c216ad5356e52e957334c64}
+      \strng{fullhash}{35772bce8c216ad5356e52e957334c64}
+      \strng{fullhashraw}{35772bce8c216ad5356e52e957334c64}
+      \strng{bibnamehash}{35772bce8c216ad5356e52e957334c64}
+      \strng{authorbibnamehash}{35772bce8c216ad5356e52e957334c64}
+      \strng{authornamehash}{35772bce8c216ad5356e52e957334c64}
+      \strng{authorfullhash}{35772bce8c216ad5356e52e957334c64}
+      \strng{authorfullhashraw}{35772bce8c216ad5356e52e957334c64}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{note}{Internal EPFL source code, forked 2018; updated through 2024}
+      \field{title}{{FRED\_M\_OCT24.SRC}: Metallic Fuel Branch of {FRED}}
+      \field{year}{2024}
     \endentry
     \entry{fink1995}{report}{}{}
       \name{author}{2}{}{%
@@ -505,8 +505,8 @@
       \strng{authornamehash}{823b5c0511797147515778fa6412a1d1}
       \strng{authorfullhash}{823b5c0511797147515778fa6412a1d1}
       \strng{authorfullhashraw}{823b5c0511797147515778fa6412a1d1}
-      \field{sortinit}{6}
-      \field{sortinithash}{b33bc299efb3c36abec520a4c896a66d}
+      \field{sortinit}{7}
+      \field{sortinithash}{108d0be1b1bee9773a1173443802c0a3}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{number}{ANL/RE-95/2}
@@ -533,8 +533,8 @@
       \strng{authornamehash}{51d7c7727fba6bdb02033bd4eef9d9f4}
       \strng{authorfullhash}{51d7c7727fba6bdb02033bd4eef9d9f4}
       \strng{authorfullhashraw}{51d7c7727fba6bdb02033bd4eef9d9f4}
-      \field{sortinit}{9}
-      \field{sortinithash}{0a5ebc79d83c96b6579069544c73c7d4}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{booktitle}{Comprehensive Nuclear Materials}

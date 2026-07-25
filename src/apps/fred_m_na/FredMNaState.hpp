@@ -24,6 +24,9 @@ struct FredMNaNodeState {
     double pfrac = 1.0;          // phase fraction
     double psod  = 0.0;          // sodium infiltration fraction [-]
 
+    // Lanthanide number density [#/m3] (LaTracking cladding-wastage model)
+    double c_la  = 0.0;
+
     // Porosity state (needed for thermal conductivity)
     double poros_tot = 0.0;  // total porosity [-]  (driven by swelling)
     double poros_gas = 0.0;  // gas-filled porosity [-]
@@ -78,6 +81,19 @@ struct FredMNaLayerState : public AxialLayerState {
     double xwast  = 0.0;  // wastage thickness [m]
     double clfuel = 0.0;  // lanthanide concentration [-]
     double ntot   = 0.0;  // fuel atom density [atom/m3]
+    // LaTracking subgrid La density [#/m3], size (nf-1)*la_refine+1;
+    // empty until the model's first step (self-sizing in the kernel)
+    std::vector<double> c_la_sub;
+
+    // Cladding void swelling (FredMNaCladSwelling.hpp). ecs[i] is the
+    // isotropic linear (volumetric/3) swelling strain [-] at clad node i,
+    // wired into FredMNaStressStrain's Hooke's law identically to thermal
+    // expansion et[i]. neuflue2/clad_dose are layer-level SAS-derived
+    // fast-fluence [1e22 n/cm2] / dose [dpa] bookkeeping shared by both
+    // swelling models (legacy Baseir.for neuflue2(j,l)/dose(j,l)).
+    std::vector<double> ecs;   // size nc
+    double neuflue2  = 0.0;
+    double clad_dose = 0.0;
 
     explicit FredMNaLayerState(int nf_, int nc_)
         : AxialLayerState(nf_, nc_),
@@ -87,7 +103,8 @@ struct FredMNaLayerState : public AxialLayerState {
           efsz(nf_, 0.0),
           efsh(nf_, 0.0),
           efsr(nf_, 0.0),
-          nodes(nf_)
+          nodes(nf_),
+          ecs(nc_, 0.0)
     {}
 };
 

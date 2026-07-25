@@ -55,6 +55,26 @@ def _pos(name, v):
     if v <= 0:
         raise ValueError(f"{name} must be positive, got {v!r}")
 
+def _check_dtout_arg(tend, dtout):
+    """Validate scalar-or-sequence dtout; return float or list of floats."""
+    import numpy as np
+    if np.isscalar(dtout) and not isinstance(dtout, (str, bytes)):
+        _pos("dtout", dtout)
+        if dtout > tend:
+            raise ValueError(f"dtout ({dtout} s) must be <= tend ({tend} s)")
+        return float(dtout)
+    arr = np.asarray(dtout, dtype=float).ravel()
+    if arr.size == 0:
+        raise ValueError("dtout schedule must not be empty")
+    if np.any(arr <= 0):
+        raise ValueError(f"all dtout entries must be positive; smallest is {arr.min()!r}")
+    if np.sum(arr) < tend:
+        raise ValueError(
+            f"dtout schedule covers only {np.sum(arr)} s but tend is {tend} s; "
+            f"np.sum(dtout) must be >= tend")
+    return [float(x) for x in arr]
+
+
 
 def _nonneg(name, v):
     """Require v >= 0."""
@@ -499,7 +519,9 @@ class FredRodSolver:
         Run from t=0 to tend [s], writing output every dtout [s].
 
         tend        : positive end time [s]
-        dtout       : positive output interval [s], must be <= tend
+        dtout       : positive output interval [s] (must be <= tend), or a
+                      sequence of successive intervals [s] (variable output
+                      schedule; np.sum(dtout) must be >= tend)
         output_file : if given, write results to this HDF5 file after the run
                       (e.g. 'results.h5').  Requires h5py.
         all_steps   : if True, record every internal IDA step in addition to
@@ -507,11 +529,7 @@ class FredRodSolver:
                       is primarily for debugging.
         """
         _pos("tend", tend)
-        _pos("dtout", dtout)
-        if dtout > tend:
-            raise ValueError(
-                f"dtout ({dtout} s) must be <= tend ({tend} s)"
-            )
+        dtout = _check_dtout_arg(tend, dtout)
         if output_file is not None:
             self._solver.set_output_file(str(output_file))
         self._solver.run(tend, dtout, bool(all_steps))
@@ -678,7 +696,9 @@ class FredOxSolver:
         Run from t=0 to tend [s], writing output every dtout [s].
 
         tend        : positive end time [s]
-        dtout       : positive output interval [s], must be <= tend
+        dtout       : positive output interval [s] (must be <= tend), or a
+                      sequence of successive intervals [s] (variable output
+                      schedule; np.sum(dtout) must be >= tend)
         output_file : if given, write results to this HDF5 file after the run
                       (e.g. 'results.h5').  Requires h5py.
         all_steps   : if True, record every internal IDA step in addition to
@@ -686,11 +706,7 @@ class FredOxSolver:
                       is primarily for debugging.
         """
         _pos("tend", tend)
-        _pos("dtout", dtout)
-        if dtout > tend:
-            raise ValueError(
-                f"dtout ({dtout} s) must be <= tend ({tend} s)"
-            )
+        dtout = _check_dtout_arg(tend, dtout)
         if output_file is not None:
             self._solver.set_output_file(str(output_file))
         self._solver.run(tend, dtout, bool(all_steps))

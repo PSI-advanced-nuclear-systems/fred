@@ -1,12 +1,21 @@
 SHELL = sh
 
 # ===========================================================================
-# SUNDIALS — defaults to the active conda environment
+# Conda environment — default is fred-dev (overridable)
+# Example override: make fred-m-na CONDA_ENV_NAME=calc
+# ===========================================================================
+
+CONDA_BASE      ?= /home/chan_y/miniforge3
+CONDA_ENV_NAME  ?= fred-dev
+CONDA_ENV       ?= $(CONDA_BASE)/envs/$(CONDA_ENV_NAME)
+
+# ===========================================================================
+# SUNDIALS — from the conda environment
 #
-# Install via: conda install -c conda-forge sundials
+# Install via: conda install -n fred-dev -c conda-forge sundials
 #
-# Override if your conda env is elsewhere:
-#   make fred-m-na SUNDIALS_PREFIX=/path/to/conda/envs/fred-dev
+# Override if SUNDIALS lives elsewhere:
+#   make fred-m-na SUNDIALS_PREFIX=/path/to/prefix
 #
 # NOTE: the patched SUNDIALS from the legacy Fortran FRED installation is not
 # compatible — use only a clean conda or source build.
@@ -16,15 +25,6 @@ SUNDIALS_PREFIX     ?= $(CONDA_ENV)
 SUNDIALS_INC         = $(SUNDIALS_PREFIX)/include
 # Some installations put libs in lib64/ instead of lib/.
 SUNDIALS_LIB        := $(or $(wildcard $(SUNDIALS_PREFIX)/lib64),$(SUNDIALS_PREFIX)/lib)
-
-# ===========================================================================
-# Python / pybind11 — default conda environment is fred-dev (overridable)
-# Example override: make fred-m-na CONDA_ENV_NAME=calc
-# ===========================================================================
-
-CONDA_BASE      ?= /home/chan_y/miniforge3
-CONDA_ENV_NAME  ?= fred-dev
-CONDA_ENV       ?= $(CONDA_BASE)/envs/$(CONDA_ENV_NAME)
 PYTHON          = $(CONDA_ENV)/bin/python3
 CMAKE           = $(CONDA_ENV)/bin/cmake
 PYBIND11_INC   := $(shell $(PYTHON) -c "import pybind11; print(pybind11.get_include())")
@@ -51,18 +51,17 @@ HDF5_LIB  = $(CONDA_ENV)/lib
 CXXFLAGS  = $(CXXSTD) -O2 -Wall -Wextra -MMD -MP -fopenmp -I$(SUNDIALS_INC) -I$(SRC) -I$(HDF5_INC)
 CXXFLAGS_PY = $(CXXFLAGS) $(PYTHON_INC) -I$(PYBIND11_INC) -fPIC
 
-SUNDIALS_STATIC = \
-    $(SUNDIALS_LIB)/libsundials_ida.a \
-    $(SUNDIALS_LIB)/libsundials_core.a \
-    $(SUNDIALS_LIB)/libsundials_nvecserial.a \
-    $(SUNDIALS_LIB)/libsundials_nvecopenmp.a \
-    $(SUNDIALS_LIB)/libsundials_sunmatrixdense.a \
-    $(SUNDIALS_LIB)/libsundials_sunlinsoldense.a \
-    $(SUNDIALS_LIB)/libsundials_sunnonlinsolnewton.a
+# conda-forge sundials ships shared libraries only (no .a)
+SUNDIALS_SHARED = -L$(SUNDIALS_LIB) \
+    -lsundials_ida -lsundials_core \
+    -lsundials_nvecserial -lsundials_nvecopenmp \
+    -lsundials_sunmatrixdense -lsundials_sunlinsoldense \
+    -lsundials_sunnonlinsolnewton \
+    -Wl,-rpath,$(SUNDIALS_LIB)
 
-LDFLAGS   = -Wl,--start-group $(SUNDIALS_STATIC) -Wl,--end-group -lm -no-pie \
+LDFLAGS   = $(SUNDIALS_SHARED) -lm -no-pie \
             -L$(HDF5_LIB) -lhdf5 -Wl,-rpath,$(HDF5_LIB) -fopenmp
-LDFLAGS_PY= -Wl,--start-group $(SUNDIALS_STATIC) -Wl,--end-group -lm \
+LDFLAGS_PY= $(SUNDIALS_SHARED) -lm \
             $(PYTHON_LDFLAGS) -shared \
             -L$(HDF5_LIB) -lhdf5 -Wl,-rpath,$(HDF5_LIB) -fopenmp
 

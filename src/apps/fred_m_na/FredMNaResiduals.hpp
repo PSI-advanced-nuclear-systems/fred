@@ -3,6 +3,7 @@
 #include "FredMNaStressStrain.hpp"
 #include "fuelpelletmaterial/UPuZr.hpp"
 #include "claddingmaterial/HT9.hpp"
+#include "FredMNaCladdingMaterial.hpp"
 #include "platform/RodResiduals.hpp"
 
 namespace fred {
@@ -38,11 +39,11 @@ constexpr double MNA_BUP_SCALE = 8.64e10; // J per MWd/kgU
 // -----------------------------------------------------------------------
 class FredMNaResiduals : public RodResiduals {
 public:
-    FredMNaResiduals(const FuelRodGeometry& geom,
-                     UPuZr&                 fuel,
-                     const HT9&             clad,
-                     GapMaterial&           gap_mat,
-                     double                 coolant_pressure_MPa);
+    FredMNaResiduals(const FuelRodGeometry&         geom,
+                     UPuZr&                          fuel,
+                     const FredMNaCladdingMaterial&  clad,
+                     GapMaterial&                    gap_mat,
+                     double                          coolant_pressure_MPa);
 
     int neqGlobal() const { return 3; }
     int neqTotal()  const { return 3 + m_neq_j * m_geom.nz; }
@@ -186,7 +187,7 @@ protected:
 
 private:
     UPuZr&             m_fuel;
-    const HT9&         m_ht9;     // concrete cladding ref for HT9-specific methods
+    const FredMNaCladdingMaterial& m_clad_mna;  // FRED-M-Na cladding ref (creep, swelling, wastage)
     const GapMaterial& m_gap_mat;
 
     double m_gpres0  = 0.1;

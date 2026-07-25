@@ -7,6 +7,7 @@
 #include "platform/Constants.hpp"
 #include "platform/RodResiduals.hpp"
 
+#include <functional>
 #include "hdf5.h"
 // No SUNDIALS IDA integrator here (see class comment in FredMNaSolver.hpp) —
 // only nvector_serial (plain N_Vector data container, reused for
@@ -31,9 +32,9 @@ namespace fred {
 // ---------------------------------------------------------------------------
 // Construction
 // ---------------------------------------------------------------------------
-FredMNaSolver::FredMNaSolver(const FuelRodGeometry& geom,
-                               UPuZr&                 fuel,
-                               HT9&                   clad)
+FredMNaSolver::FredMNaSolver(const FuelRodGeometry&    geom,
+                               UPuZr&                    fuel,
+                               FredMNaCladdingMaterial&  clad)
     : FredSolverBase(geom),
       m_fuel  (fuel),
       m_clad  (clad),
@@ -281,7 +282,41 @@ void FredMNaSolver::openAppH5Datasets()
         H5Pclose(pr); H5Sclose(sp); return ds;
     };
     m_h5mna.ds_gap = mk1d(therm, "gap_width");
+    // 2D per-(layer, node) datasets, flattened row-major as [j*nf + i]
+    // (same layer-major convention as thermal/T).
+    auto mk2d = [](hid_t loc, const char* name, hsize_t ncols) -> hid_t {
+        hsize_t dims[2]={0,ncols}, maxd[2]={H5S_UNLIMITED,ncols}, ck[2]={16,ncols};
+        hid_t sp=H5Screate_simple(2,dims,maxd);
+        hid_t pr=H5Pcreate(H5P_DATASET_CREATE); H5Pset_chunk(pr,2,ck);
+        hid_t ds=H5Dcreate(loc,name,H5T_NATIVE_DOUBLE,sp,H5P_DEFAULT,pr,H5P_DEFAULT);
+        H5Pclose(pr); H5Sclose(sp); return ds;
+    };
+    const hsize_t nzf = (hsize_t)m_geom.nz * (hsize_t)m_geom.nf;
+    const hsize_t nzl = (hsize_t)m_geom.nz;
+    m_h5mna.ds_kfuel   = mk2d(therm, "k_fuel", nzf);
+    m_h5mna.ds_psod    = mk2d(therm, "psod", nzf);
+    m_h5mna.ds_ptot    = mk2d(therm, "poros_tot", nzf);
+    m_h5mna.ds_pgas    = mk2d(therm, "poros_gas", nzf);
+    m_h5mna.ds_contact = mk2d(therm, "contact_state", nzl);
+    // GRSIS per-node bubble swelling state
+    hid_t grs = H5Gcreate(file, "grsis", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    m_h5mna.grp_grsis   = grs;
+    m_h5mna.ds_sw_close = mk2d(grs, "swclose", nzf);
+    m_h5mna.ds_sw_open  = mk2d(grs, "swopen", nzf);
+    m_h5mna.ds_sw_sol   = mk2d(grs, "swsol", nzf);
+    m_h5mna.ds_sw_tot   = mk2d(grs, "swtot", nzf);
+    // Cladding void swelling (FredMNaCladSwelling.hpp)
+    const hsize_t nzc = (hsize_t)m_geom.nz * (hsize_t)m_geom.nc;
+    hid_t swl = H5Gcreate(file, "swelling", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    m_h5mna.grp_swelling  = swl;
+    m_h5mna.ds_ecs        = mk2d(swl, "ecs", nzc);
+    m_h5mna.ds_neuflue2   = mk2d(swl, "neuflue2", nzl);
+    m_h5mna.ds_clad_dose  = mk2d(swl, "dose", nzl);
+
     hid_t bup = H5Gcreate(file, "burnup", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    m_h5mna.ds_zrwf        = mk2d(bup, "zr_wf", nzf);
+    m_h5mna.ds_c_la        = mk2d(bup, "c_la", nzf);
+    m_h5mna.ds_xwast_layer = mk2d(bup, "xwast_layer", nzl);
     m_h5mna.grp_burnup = bup;
     m_h5mna.ds_gpres   = mk1d(bup, "gpres");
     m_h5mna.ds_fggen   = mk1d(bup, "fggen");
@@ -318,6 +353,108 @@ void FredMNaSolver::appendAppH5Row()
     app((hid_t)m_h5mna.ds_swopen, s, m_swopen_out.empty() ? 0.0 : m_swopen_out.back());
     app((hid_t)m_h5mna.ds_burst,  s, m_burst_out .empty() ? 0.0 : m_burst_out .back());
     app((hid_t)m_h5mna.ds_melt,   s, m_melt_out  .empty() ? 0.0 : m_melt_out  .back());
+
+    // 2D per-(layer, node) rows.  Each dataset gets one row per output step,
+    // filled from a per-node getter evaluated on the current state.
+    const int nz = m_geom.nz, nf = m_geom.nf;
+    auto app2d = [&](int64_t ds64,
+                     const std::function<double(const FredMNaLayerState&, int)>& get) {
+        if (ds64 < 0) return;
+        std::vector<double> row((size_t)nz * nf, 0.0);
+        for (int j = 0; j < nz; ++j) {
+            const auto& sl = m_state.layers[j];
+            if ((int)sl.nodes.size() != nf) continue;
+            for (int i = 0; i < nf; ++i)
+                row[(size_t)j*nf + i] = get(sl, i);
+        }
+        hid_t ds = (hid_t)ds64;
+        const hsize_t ncols = (hsize_t)nz * nf;
+        hsize_t nd[2] = {s + 1, ncols};
+        H5Dset_extent(ds, nd);
+        hid_t fsp = H5Dget_space(ds);
+        hsize_t st[2] = {s, 0}, ct[2] = {1, ncols};
+        H5Sselect_hyperslab(fsp, H5S_SELECT_SET, st, nullptr, ct, nullptr);
+        hid_t msp = H5Screate_simple(2, ct, nullptr);
+        H5Dwrite(ds, H5T_NATIVE_DOUBLE, msp, fsp, H5P_DEFAULT, row.data());
+        H5Sclose(msp); H5Sclose(fsp);
+    };
+
+    // thermal/k_fuel: before the first accepted step k_fuel_per_node is not
+    // yet filled; fall back to the fresh-fuel correlation at the node state.
+    app2d(m_h5mna.ds_kfuel, [&](const FredMNaLayerState& sl, int i) {
+        if ((int)sl.k_fuel_per_node.size() == nf) return sl.k_fuel_per_node[i];
+        return m_fuel.thermalConductivityLocal(sl.T[i], sl.nodes[i].pu_wf,
+                                               sl.nodes[i].zr_wf);
+    });
+    app2d(m_h5mna.ds_psod, [](const FredMNaLayerState& sl, int i)
+          { return sl.nodes[i].psod; });
+    app2d(m_h5mna.ds_ptot, [](const FredMNaLayerState& sl, int i)
+          { return sl.nodes[i].poros_tot; });
+    app2d(m_h5mna.ds_pgas, [](const FredMNaLayerState& sl, int i)
+          { return sl.nodes[i].poros_gas; });
+    app2d(m_h5mna.ds_zrwf, [](const FredMNaLayerState& sl, int i)
+          { return sl.nodes[i].zr_wf; });
+    app2d(m_h5mna.ds_sw_close, [](const FredMNaLayerState& sl, int i)
+          { return sl.nodes[i].grsis.swclose; });
+    app2d(m_h5mna.ds_sw_open, [](const FredMNaLayerState& sl, int i)
+          { return sl.nodes[i].grsis.swopen; });
+    app2d(m_h5mna.ds_sw_sol, [](const FredMNaLayerState& sl, int i)
+          { return sl.nodes[i].grsis.swsol; });
+    app2d(m_h5mna.ds_sw_tot, [](const FredMNaLayerState& sl, int i)
+          { return sl.nodes[i].grsis.swtot; });
+    app2d(m_h5mna.ds_c_la, [](const FredMNaLayerState& sl, int i)
+          { return sl.nodes[i].c_la; });
+
+    // 2D per-(layer, clad node) rows (ncols = nz*nc; clad grid, not fuel).
+    const int nc = m_geom.nc;
+    auto app2dNc = [&](int64_t ds64,
+                       const std::function<double(const FredMNaLayerState&, int)>& get) {
+        if (ds64 < 0) return;
+        std::vector<double> row((size_t)nz * nc, 0.0);
+        for (int j = 0; j < nz; ++j) {
+            const auto& sl = m_state.layers[j];
+            if ((int)sl.ecs.size() != nc) continue;
+            for (int i = 0; i < nc; ++i)
+                row[(size_t)j*nc + i] = get(sl, i);
+        }
+        hid_t ds = (hid_t)ds64;
+        const hsize_t ncols = (hsize_t)nz * nc;
+        hsize_t nd[2] = {s + 1, ncols};
+        H5Dset_extent(ds, nd);
+        hid_t fsp = H5Dget_space(ds);
+        hsize_t st[2] = {s, 0}, ct[2] = {1, ncols};
+        H5Sselect_hyperslab(fsp, H5S_SELECT_SET, st, nullptr, ct, nullptr);
+        hid_t msp = H5Screate_simple(2, ct, nullptr);
+        H5Dwrite(ds, H5T_NATIVE_DOUBLE, msp, fsp, H5P_DEFAULT, row.data());
+        H5Sclose(msp); H5Sclose(fsp);
+    };
+    app2dNc(m_h5mna.ds_ecs, [](const FredMNaLayerState& sl, int i)
+            { return sl.ecs[i]; });
+
+    // 2D per-layer rows (ncols = nz)
+    auto app2dL = [&](int64_t ds64,
+                      const std::function<double(const FredMNaLayerState&)>& get) {
+        if (ds64 < 0) return;
+        std::vector<double> row((size_t)nz, 0.0);
+        for (int j = 0; j < nz; ++j) row[j] = get(m_state.layers[j]);
+        hid_t ds = (hid_t)ds64;
+        const hsize_t ncols = (hsize_t)nz;
+        hsize_t nd[2] = {s + 1, ncols};
+        H5Dset_extent(ds, nd);
+        hid_t fsp = H5Dget_space(ds);
+        hsize_t st[2] = {s, 0}, ct[2] = {1, ncols};
+        H5Sselect_hyperslab(fsp, H5S_SELECT_SET, st, nullptr, ct, nullptr);
+        hid_t msp = H5Screate_simple(2, ct, nullptr);
+        H5Dwrite(ds, H5T_NATIVE_DOUBLE, msp, fsp, H5P_DEFAULT, row.data());
+        H5Sclose(msp); H5Sclose(fsp);
+    };
+    app2dL(m_h5mna.ds_xwast_layer, [](const FredMNaLayerState& sl)
+           { return sl.xwast; });
+    app2dL(m_h5mna.ds_contact, [](const FredMNaLayerState& sl) {
+        return sl.flag == "clos" ? 2.0 : (sl.flag == "soft" ? 1.0 : 0.0);
+    });
+    app2dL(m_h5mna.ds_neuflue2,  [](const FredMNaLayerState& sl) { return sl.neuflue2; });
+    app2dL(m_h5mna.ds_clad_dose, [](const FredMNaLayerState& sl) { return sl.clad_dose; });
 }
 
 void FredMNaSolver::trimAppOutputVectors()
@@ -342,6 +479,23 @@ void FredMNaSolver::closeAppH5Datasets()
     if (m_h5mna.ds_swopen >= 0) H5Dclose((hid_t)m_h5mna.ds_swopen);
     if (m_h5mna.ds_burst  >= 0) H5Dclose((hid_t)m_h5mna.ds_burst);
     if (m_h5mna.ds_melt   >= 0) H5Dclose((hid_t)m_h5mna.ds_melt);
+    if (m_h5mna.ds_kfuel  >= 0) H5Dclose((hid_t)m_h5mna.ds_kfuel);
+    if (m_h5mna.ds_psod   >= 0) H5Dclose((hid_t)m_h5mna.ds_psod);
+    if (m_h5mna.ds_ptot   >= 0) H5Dclose((hid_t)m_h5mna.ds_ptot);
+    if (m_h5mna.ds_pgas   >= 0) H5Dclose((hid_t)m_h5mna.ds_pgas);
+    if (m_h5mna.ds_zrwf   >= 0) H5Dclose((hid_t)m_h5mna.ds_zrwf);
+    if (m_h5mna.ds_sw_close >= 0) H5Dclose((hid_t)m_h5mna.ds_sw_close);
+    if (m_h5mna.ds_sw_open  >= 0) H5Dclose((hid_t)m_h5mna.ds_sw_open);
+    if (m_h5mna.ds_sw_sol   >= 0) H5Dclose((hid_t)m_h5mna.ds_sw_sol);
+    if (m_h5mna.ds_sw_tot   >= 0) H5Dclose((hid_t)m_h5mna.ds_sw_tot);
+    if (m_h5mna.ds_c_la     >= 0) H5Dclose((hid_t)m_h5mna.ds_c_la);
+    if (m_h5mna.ds_xwast_layer >= 0) H5Dclose((hid_t)m_h5mna.ds_xwast_layer);
+    if (m_h5mna.ds_contact  >= 0) H5Dclose((hid_t)m_h5mna.ds_contact);
+    if (m_h5mna.ds_ecs      >= 0) H5Dclose((hid_t)m_h5mna.ds_ecs);
+    if (m_h5mna.ds_neuflue2 >= 0) H5Dclose((hid_t)m_h5mna.ds_neuflue2);
+    if (m_h5mna.ds_clad_dose>= 0) H5Dclose((hid_t)m_h5mna.ds_clad_dose);
+    if (m_h5mna.grp_swelling>= 0) H5Gclose((hid_t)m_h5mna.grp_swelling);
+    if (m_h5mna.grp_grsis   >= 0) H5Gclose((hid_t)m_h5mna.grp_grsis);
     if (m_h5mna.grp_burnup>= 0) H5Gclose((hid_t)m_h5mna.grp_burnup);
     m_h5mna = MnaH5Ctx{};
 }
@@ -481,8 +635,14 @@ void FredMNaSolver::afterAcceptedStep(double t, double dt) {
             nd.psod  = sodiumInfiltration(s.bup_FIMA, s.buhard_FIMA,
                                            m_geom.rad0[i], m_geom.rad0[nf-1],
                                            nd.phase, s.flag);
-            nd.poros_tot = std::max(0.0, s.efs[i]);
-            nd.poros_gas = 0.5 * nd.poros_tot;
+            // Porosity split for the conductivity model, matching legacy
+            // Baseir.for: poros_tot = frtot (= sw_gas, closed+open bubble
+            // swelling), poros_gas = frg (= sw_close, closed gas-filled
+            // porosity); the difference sw_open is the open porosity
+            // accessible to sodium. One-step lag (previous step's GRSIS
+            // state), same as legacy.
+            nd.poros_tot = nd.grsis.frtot;
+            nd.poros_gas = nd.grsis.frg;
         }
 
         // Per-node irradiated conductivity for HeatConduction.
@@ -509,16 +669,6 @@ void FredMNaSolver::afterAcceptedStep(double t, double dt) {
             for (int i = 0; i < nf-1; ++i)
                 T_ctr[i] = 0.5 * (s.T[i] + s.T[i+1]);
 
-            std::vector<std::string> phase_ctr(nf-1);
-            std::vector<double> pfrac_ctr(nf-1);
-            for (int i = 0; i < nf-1; ++i) {
-                // Use local redistributed zr_at[i], not the nominal global zr,
-                // so phase-dependent D coefficients respond to redistribution.
-                auto ph = upuzrPhase(T_ctr[i], pu, zr_at[i]);
-                phase_ctr[i] = ph.phase;
-                pfrac_ctr[i] = ph.pfrac;
-            }
-
             std::vector<double> zr_at(nf-1), pu_at(nf-1), ur_at(nf-1);
             std::vector<double> zr_wf(nf-1), pu_wf(nf-1), ur_wf(nf-1);
             std::vector<double> zr_atoms(nf-1), pu_atoms(nf-1), ur_atoms(nf-1);
@@ -539,6 +689,17 @@ void FredMNaSolver::afterAcceptedStep(double t, double dt) {
                 zr_atoms[i] = c_zr_arr[i] * dvol_arr[i];
                 pu_atoms[i] = pu_at[i] / std::max(tot, 1e-30) * mass_arr[i] * MNA_AVOGADRO / (ma_v * 1e-3);
                 ur_atoms[i] = ur_at[i] / std::max(tot, 1e-30) * mass_arr[i] * MNA_AVOGADRO / (ma_v * 1e-3);
+            }
+
+            std::vector<std::string> phase_ctr(nf-1);
+            std::vector<double> pfrac_ctr(nf-1);
+            for (int i = 0; i < nf-1; ++i) {
+                // Use the local redistributed cell-centre zr_wf[i], not the
+                // nominal global zr, so phase-dependent D coefficients respond
+                // to redistribution.
+                auto ph = upuzrPhase(T_ctr[i], pu, zr_wf[i]);
+                phase_ctr[i] = ph.phase;
+                pfrac_ctr[i] = ph.pfrac;
             }
 
             upuzrZirconiumRedistribution(
@@ -618,8 +779,8 @@ void FredMNaSolver::afterAcceptedStep(double t, double dt) {
                                !s.gapOpen, grsis_p);
                 }
 
-                nd.poros_tot = nd.grsis.swtot;
-                nd.poros_gas = nd.grsis.frtot;
+                nd.poros_tot = nd.grsis.frtot;   // fr_tot = sw_gas   (Baseir.for)
+                nd.poros_gas = nd.grsis.frg;     // fr_g   = sw_close (Baseir.for)
 
                 // Couple GRSIS's total (solid + gas-bubble) swelling into the
                 // mechanical efs ODE: d(efs)/dt = d(swtot)/dt / 3 (volumetric ->
@@ -636,7 +797,8 @@ void FredMNaSolver::afterAcceptedStep(double t, double dt) {
             s.defs_grsis[nf-1]      = s.defs_grsis[nf-2];
         }
 
-        if (m_enable_waste) {
+        if (m_enable_waste &&
+            m_wastage_model == CladWastageModel::PrecipitationKinetics) {
             std::vector<double> qqv_arr  (1, s.qqv);
             std::vector<double> cit_arr  (1, s.T[nf]);
             std::vector<std::string> flag_arr(1, s.flag);
@@ -645,14 +807,62 @@ void FredMNaSolver::afterAcceptedStep(double t, double dt) {
             std::vector<double> xw_arr   (1, s.xwast);
             std::vector<double> dz0_arr  (1, m_geom.dz0[j]);
 
-            ht9CladWastage(1, dt, std::max(t, 1.0),
+            cladWastagePrecipitation(1, dt, std::max(t, 1.0),
                             qqv_arr.data(), cit_arr.data(), flag_arr.data(),
                             m_fuel.referenceDensity(), pu, zr,
                             m_geom.rfo0, dz0_arr.data(),
-                            ntot_arr.data(), clf_arr.data(), xw_arr.data());
+                            ntot_arr.data(), clf_arr.data(), xw_arr.data(),
+                            m_clad, m_wastage_params);
             s.clfuel = clf_arr[0];
             s.xwast  = xw_arr[0];
             s.ntot   = ntot_arr[0];
+        } else if (m_enable_waste &&
+                   m_wastage_model == CladWastageModel::LaTracking) {
+            // Per-node lanthanide diffusion (MFUEL App. 9.3); the Dirichlet
+            // sink at the interface is active only during soft/clos contact,
+            // same gating as the precipitation model.
+            std::vector<double> cla(nf);
+            const bool in_contact =
+                !m_wastage_params.la_sink_requires_contact ||
+                (s.flag == "soft" || s.flag == "clos");
+            cladWastageLaTracking(nf, dt, s.qqv, s.T.data(),
+                                  s.T[nf],           // cladding inner T
+                                  m_geom.rfo0, in_contact,
+                                  m_clad, m_wastage_params, s.c_la_sub,
+                                  cla.data(), s.xwast);
+            for (int i = 0; i < nf; ++i) s.nodes[i].c_la = cla[i];
+        }
+
+        if (m_enable_swelling) {
+            // SAS-derived fast-neutron fluence/dose bookkeeping, shared by
+            // both models (Baseir.for: flux = ql*fltpow*1e-26, ql = qqv*area).
+            const double area = PI * (m_geom.rfo0*m_geom.rfo0 - m_geom.rfi0*m_geom.rfi0);
+            const double ql   = s.qqv * area;
+            const double flux = ql * m_swelling_params.fltpow * 1.0e-26;
+            s.neuflue2  += flux * dt;
+            s.clad_dose += flux * m_swelling_params.dconv * dt;
+
+            const int nc = m_geom.nc;
+            if (m_swelling_model == CladSwellingModel::Hofmann) {
+                // Direct function of cumulative fluence (no integration);
+                // legacy uses each interval's own temperature.
+                for (int i = 0; i < nc; ++i)
+                    s.ecs[i] = m_clad.voidSwelling(s.neuflue2, s.T[nf + i]) / 3.0;
+            } else { // SAS4A
+                // Single rate at cladding mid-wall temperature, integrated,
+                // broadcast uniformly across the clad wall (legacy: "use
+                // midwall temperature if model 2 is selected").  Dose-onset
+                // gate is scheme-level (applied here); the material only
+                // supplies its own T-dependent rate curve once gated.
+                const double T_mid = 0.5 * (s.T[nf] + s.T[nf + nc - 1]);
+                const double rate =
+                    (s.clad_dose < m_swelling_params.dose_threshold_dpa) ? 0.0
+                    : m_clad.voidSwellingSAS4ARate(T_mid, flux,
+                                                    m_swelling_params.dconv,
+                                                    s.clad_dose);
+                for (int i = 0; i < nc; ++i)
+                    s.ecs[i] += rate / 3.0 * dt;
+            }
         }
 
         // Push this step's irradiation physics (Zr redistribution, GRSIS,
@@ -872,13 +1082,18 @@ void FredMNaSolver::runHotStart() {
 // ---------------------------------------------------------------------------
 void FredMNaSolver::runOneStepLoop(double tend, double dtout, bool all_steps, double t_start) {
     double t = t_start;
-    double t_next_out = t_start + dtout;
-    const double dt_req = (m_step_size > 0.0) ? m_step_size : dtout;
+    // dt_cur: current output interval — the scalar dtout, or the next entry
+    // of the user-supplied schedule (setDtoutSchedule) when one is active.
+    double dt_cur = nextDtout(dtout);
+    double t_next_out = t_start + dt_cur;
 
     std::vector<double> pending_snaps = m_snapshot_timings;
     m_snapshot_count = 0;
 
-    while (t < tend - 1.0e-12 * dtout) {
+    while (t < tend - 1.0e-12 * dt_cur) {
+        // Internal step: explicit step size if set, else the current output
+        // interval (so a fine early schedule also refines the physics steps).
+        const double dt_req = (m_step_size > 0.0) ? m_step_size : dt_cur;
         double dt = std::min(dt_req, t_next_out - t);
         dt = std::min(dt, tend - t);
         if (dt <= 0.0) break;
@@ -895,7 +1110,7 @@ void FredMNaSolver::runOneStepLoop(double tend, double dtout, bool all_steps, do
         }
         t = t_new;
 
-        const bool at_dtout = (t >= t_next_out - 1.0e-12 * dtout);
+        const bool at_dtout = (t >= t_next_out - 1.0e-12 * dt_cur);
         bool saved_snap_this_step = false;
 
         if (at_dtout) {
@@ -909,7 +1124,7 @@ void FredMNaSolver::runOneStepLoop(double tend, double dtout, bool all_steps, do
 
             if (!m_snapshot_prefix.empty()) {
                 for (auto it = pending_snaps.begin(); it != pending_snaps.end(); ) {
-                    if (std::abs(t - *it) < 0.5 * dtout) {
+                    if (std::abs(t - *it) < 0.5 * dt_cur) {
                         ++m_snapshot_count;
                         std::string fname = m_snapshot_prefix + "_frame"
                             + std::to_string(m_snapshot_count) + ".snapshot";
@@ -922,13 +1137,14 @@ void FredMNaSolver::runOneStepLoop(double tend, double dtout, bool all_steps, do
                 }
             }
 
-            t_next_out += dtout;
+            dt_cur = nextDtout(dtout);
+            t_next_out += dt_cur;
         } else if (all_steps) {
             unpackCurrentState();
             storeOutput(t);
         }
 
-        if (t >= tend - 1.0e-12 * dtout) {
+        if (t >= tend - 1.0e-12 * dt_cur) {
             if (!m_snapshot_prefix.empty() && !saved_snap_this_step) {
                 ++m_snapshot_count;
                 std::string fname = m_snapshot_prefix + "_frame"
@@ -1094,7 +1310,7 @@ double FredMNaSolver::newtonSolveLayer(int j, double t_new, double dt,
 // writeAppCheckpoint — FRED-M-Na specific state beyond y/yp/gap.
 // ---------------------------------------------------------------------------
 void FredMNaSolver::writeAppCheckpoint(std::ostream& os) const {
-    const int nf = m_geom.nf, nz = m_geom.nz;
+    const int nf = m_geom.nf, nz = m_geom.nz, nc = m_geom.nc;
 
     // Elapsed irradiation time
     double elapsed = m_res.elapsedTime();
@@ -1110,7 +1326,15 @@ void FredMNaSolver::writeAppCheckpoint(std::ostream& os) const {
     // Decision D6): added per-layer flag + directional swelling
     // (efsz/efsh/efsr); breaking change from v1, acceptable per D6 (no
     // long-running M-Na jobs depend on old checkpoint files).
-    const int32_t mna_ckpt_ver = 2;
+    // v3: added per-node lanthanide density c_la (LaTracking wastage model);
+    // v2 files remain loadable (c_la defaults to 0).
+    // v4: added per-layer LaTracking subgrid vector c_la_sub (size-prefixed);
+    // v2/v3 files remain loadable (c_la_sub restarts empty).
+    // v5: added cladding void-swelling state: ecs[nc] per layer, plus
+    // layer-scalar neuflue2/clad_dose. v2..v4 files remain loadable
+    // (swelling state restarts at zero, matching m_enable_swelling's
+    // default-off behaviour).
+    const int32_t mna_ckpt_ver = 5;
     os.write(reinterpret_cast<const char*>(&mna_ckpt_ver), 4);
 
     // Per-layer state
@@ -1136,6 +1360,19 @@ void FredMNaSolver::writeAppCheckpoint(std::ostream& os) const {
         os.write(reinterpret_cast<const char*>(s.efsh.data()), nf * 8);
         os.write(reinterpret_cast<const char*>(s.efsr.data()), nf * 8);
 
+        // LaTracking subgrid (v4+): size prefix + doubles (0 if unused)
+        {
+            const int32_t nsub = (int32_t)s.c_la_sub.size();
+            os.write(reinterpret_cast<const char*>(&nsub), 4);
+            if (nsub > 0)
+                os.write(reinterpret_cast<const char*>(s.c_la_sub.data()), nsub * 8);
+        }
+
+        // Cladding void swelling (v5+): ecs[nc] + 2 layer scalars
+        os.write(reinterpret_cast<const char*>(s.ecs.data()), nc * 8);
+        os.write(reinterpret_cast<const char*>(&s.neuflue2),  8);
+        os.write(reinterpret_cast<const char*>(&s.clad_dose), 8);
+
         // Per-node state
         for (int i = 0; i < nf; ++i) {
             const auto& nd = s.nodes[i];
@@ -1154,6 +1391,8 @@ void FredMNaSolver::writeAppCheckpoint(std::ostream& os) const {
             os.write(reinterpret_cast<const char*>(&nd.psod),      8);
             os.write(reinterpret_cast<const char*>(&nd.poros_tot), 8);
             os.write(reinterpret_cast<const char*>(&nd.poros_gas), 8);
+            // Lanthanide density (v3+)
+            os.write(reinterpret_cast<const char*>(&nd.c_la),      8);
             // Phase string: fixed 8 chars (padded with nulls)
             char phase_buf[8] = {};
             std::strncpy(phase_buf, nd.phase.c_str(), 7);
@@ -1186,7 +1425,7 @@ void FredMNaSolver::writeAppCheckpoint(std::ostream& os) const {
 // readAppCheckpoint — restore FRED-M-Na specific state from checkpoint.
 // ---------------------------------------------------------------------------
 void FredMNaSolver::readAppCheckpoint(std::istream& is) {
-    const int nf = m_geom.nf, nz = m_geom.nz;
+    const int nf = m_geom.nf, nz = m_geom.nz, nc = m_geom.nc;
 
     // Elapsed irradiation time
     double elapsed;
@@ -1201,10 +1440,10 @@ void FredMNaSolver::readAppCheckpoint(std::istream& is) {
 
     int32_t mna_ckpt_ver = 0;
     is.read(reinterpret_cast<char*>(&mna_ckpt_ver), 4);
-    if (mna_ckpt_ver != 2)
+    if (mna_ckpt_ver < 2 || mna_ckpt_ver > 5)
         throw std::runtime_error(
             "FredMNaSolver::readAppCheckpoint: unsupported checkpoint version "
-            "(expected 2, got " + std::to_string(mna_ckpt_ver) +
+            "(expected 2..5, got " + std::to_string(mna_ckpt_ver) +
             ") — old-format M-Na checkpoints predate the gap-behaviour-model "
             "refactor and are not supported (Decision D6)");
 
@@ -1227,6 +1466,26 @@ void FredMNaSolver::readAppCheckpoint(std::istream& is) {
         is.read(reinterpret_cast<char*>(s.efsh.data()), nf * 8);
         is.read(reinterpret_cast<char*>(s.efsr.data()), nf * 8);
 
+        if (mna_ckpt_ver >= 4) {
+            int32_t nsub = 0;
+            is.read(reinterpret_cast<char*>(&nsub), 4);
+            s.c_la_sub.assign(std::max(nsub, 0), 0.0);
+            if (nsub > 0)
+                is.read(reinterpret_cast<char*>(s.c_la_sub.data()), nsub * 8);
+        } else {
+            s.c_la_sub.clear();
+        }
+
+        if (mna_ckpt_ver >= 5) {
+            is.read(reinterpret_cast<char*>(s.ecs.data()), nc * 8);
+            is.read(reinterpret_cast<char*>(&s.neuflue2),  8);
+            is.read(reinterpret_cast<char*>(&s.clad_dose), 8);
+        } else {
+            std::fill(s.ecs.begin(), s.ecs.end(), 0.0);
+            s.neuflue2  = 0.0;
+            s.clad_dose = 0.0;
+        }
+
         for (int i = 0; i < nf; ++i) {
             auto& nd = s.nodes[i];
             is.read(reinterpret_cast<char*>(&nd.zr_wf), 8);
@@ -1242,6 +1501,10 @@ void FredMNaSolver::readAppCheckpoint(std::istream& is) {
             is.read(reinterpret_cast<char*>(&nd.psod),      8);
             is.read(reinterpret_cast<char*>(&nd.poros_tot), 8);
             is.read(reinterpret_cast<char*>(&nd.poros_gas), 8);
+            if (mna_ckpt_ver >= 3)
+                is.read(reinterpret_cast<char*>(&nd.c_la), 8);
+            else
+                nd.c_la = 0.0;
             char phase_buf[8] = {};
             is.read(phase_buf, 8);
             nd.phase = std::string(phase_buf);

@@ -91,20 +91,32 @@
 \contentsline {subsection}{\numberline {6.2}U-Pu-Zr Phase Diagram}{31}{subsection.6.2}%
 \contentsline {subsection}{\numberline {6.3}U-Pu-Zr Thermal Conductivity}{31}{subsection.6.3}%
 \contentsline {subsubsection}{\numberline {6.3.1}Fresh Fuel (Aydin/Karahan 2009)}{31}{subsubsection.6.3.1}%
-\contentsline {subsubsection}{\numberline {6.3.2}Irradiation-Corrected Conductivity (with Na Infiltration)}{31}{subsubsection.6.3.2}%
+\contentsline {subsubsection}{\numberline {6.3.2}Irradiation-Corrected Conductivity (with Na Infiltration)}{32}{subsubsection.6.3.2}%
 \contentsline {subsubsection}{\numberline {6.3.3}Empirical Burnup Correction (Karahan 2009)}{32}{subsubsection.6.3.3}%
-\contentsline {subsection}{\numberline {6.4}Sodium Infiltration}{32}{subsection.6.4}%
-\contentsline {subsection}{\numberline {6.5}Gap Conductance Specialization in FRED-M-Na}{32}{subsection.6.5}%
-\contentsline {subsection}{\numberline {6.6}Zirconium Redistribution}{32}{subsection.6.6}%
+\contentsline {subsubsection}{\numberline {6.3.4}Sigmoid Burnup Correction (ESFR-SIMPLE)}{32}{subsubsection.6.3.4}%
+\contentsline {subsection}{\numberline {6.4}Sodium Infiltration}{33}{subsection.6.4}%
+\contentsline {subsection}{\numberline {6.5}Gap Conductance Specialization in FRED-M-Na}{33}{subsection.6.5}%
+\contentsline {subsection}{\numberline {6.6}Zirconium Redistribution}{33}{subsection.6.6}%
 \contentsline {subsection}{\numberline {6.7}Fuel Swelling: Solid Fission Products}{33}{subsection.6.7}%
-\contentsline {subsection}{\numberline {6.8}Gap-Contact States and Anisotropic Swelling (open/soft/clos)}{33}{subsection.6.8}%
-\contentsline {subsection}{\numberline {6.9}Fission Gas Release (Karahan Empirical Model)}{33}{subsection.6.9}%
-\contentsline {subsection}{\numberline {6.10}Cladding Wastage by Lanthanide Attack}{34}{subsection.6.10}%
-\contentsline {subsection}{\numberline {6.11}HT-9 Cladding Material}{34}{subsection.6.11}%
-\contentsline {subsection}{\numberline {6.12}Sodium Sub-Channel Coolant Model}{34}{subsection.6.12}%
-\contentsline {subsubsection}{\numberline {6.12.1}Axial Coolant Energy Balance}{34}{subsubsection.6.12.1}%
-\contentsline {paragraph}{Sodium thermophysical properties.}{35}{section*.41}%
-\contentsline {subsubsection}{\numberline {6.12.2}Cladding-to-Coolant HTC Correlations}{35}{subsubsection.6.12.2}%
-\contentsline {paragraph}{Mikityuk (2009) correlation.}{35}{section*.42}%
-\contentsline {paragraph}{Subbotin (Ushakov) correlation.}{35}{section*.43}%
-\contentsline {paragraph}{Péclet number.}{35}{section*.44}%
+\contentsline {subsection}{\numberline {6.8}Gap-Contact States and Anisotropic Swelling (open/soft/clos)}{34}{subsection.6.8}%
+\contentsline {subsection}{\numberline {6.9}GRSIS Fission-Gas Bubble Swelling Model}{34}{subsection.6.9}%
+\contentsline {subsubsection}{\numberline {6.9.1}Gas equation of state and bubble kinetics}{35}{subsubsection.6.9.1}%
+\contentsline {subsubsection}{\numberline {6.9.2}Interconnection, release, and swelling}{35}{subsubsection.6.9.2}%
+\contentsline {subsubsection}{\numberline {6.9.3}Parameter presets and coupling}{35}{subsubsection.6.9.3}%
+\contentsline {subsection}{\numberline {6.10}Fission Gas Release (Karahan Empirical Model)}{36}{subsection.6.10}%
+\contentsline {subsection}{\numberline {6.11}Cladding Wastage by Lanthanide Attack}{36}{subsection.6.11}%
+\contentsline {subsubsection}{\numberline {6.11.1}Precipitation-kinetics model}{36}{subsubsection.6.11.1}%
+\contentsline {subsubsection}{\numberline {6.11.2}Lanthanide-tracking model (MFUEL)}{37}{subsubsection.6.11.2}%
+\contentsline {paragraph}{Radial mesh requirement.}{37}{section*.41}%
+\contentsline {subsection}{\numberline {6.12}Cladding Void Swelling (HT-9)}{38}{subsection.6.12}%
+\contentsline {subsubsection}{\numberline {6.12.1}Hofmann (1985) void-swelling correlation}{39}{subsubsection.6.12.1}%
+\contentsline {subsubsection}{\numberline {6.12.2}SAS4A piecewise-linear model}{39}{subsubsection.6.12.2}%
+\contentsline {paragraph}{The 100-dpa onset gate.}{39}{section*.42}%
+\contentsline {subsection}{\numberline {6.13}HT-9 Cladding Material}{40}{subsection.6.13}%
+\contentsline {subsection}{\numberline {6.14}Sodium Sub-Channel Coolant Model}{40}{subsection.6.14}%
+\contentsline {subsubsection}{\numberline {6.14.1}Axial Coolant Energy Balance}{40}{subsubsection.6.14.1}%
+\contentsline {paragraph}{Sodium thermophysical properties.}{40}{section*.43}%
+\contentsline {subsubsection}{\numberline {6.14.2}Cladding-to-Coolant HTC Correlations}{40}{subsubsection.6.14.2}%
+\contentsline {paragraph}{Mikityuk (2009) correlation.}{40}{section*.44}%
+\contentsline {paragraph}{Subbotin (Ushakov) correlation.}{41}{section*.45}%
+\contentsline {paragraph}{Péclet number.}{41}{section*.46}%

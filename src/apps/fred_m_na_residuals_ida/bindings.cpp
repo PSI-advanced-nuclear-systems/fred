@@ -24,8 +24,8 @@ void bind_fred_m_na(py::module_& m) {
                "Requires per-node porosity split and sodium infiltration fraction.")
         .value("EmpiricalBurnup", ConductivityModel::EmpiricalBurnup,
                "f=2: Piecewise empirical burnup degradation. Requires only bup_FIMA.")
-        .value("EsfrSimple", ConductivityModel::EsfrSimple,
-               "f=3: ESFR-SIMPLE sigmoid fit in burnup (at%). Requires only bup_FIMA.")
+        .value("SigmoidBurnup", ConductivityModel::SigmoidBurnup,
+               "f=3: sigmoid fit in burnup (at%), from the ESFR-SIMPLE project. Requires only bup_FIMA.")
         .export_values();
 
     py::enum_<GrsisDataMode>(m, "GrsisDataMode",

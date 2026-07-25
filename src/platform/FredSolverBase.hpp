@@ -93,6 +93,16 @@ public:
                            std::vector<double> snapshot_times = {});
     void loadSnapshot(const std::string& filename);
 
+    // Variable output-interval schedule. When non-empty, the time loop draws
+    // successive output intervals from this list instead of the scalar dtout
+    // passed to run(); once exhausted, the last entry repeats until tend.
+    // An empty vector restores constant-dtout behaviour. Set by the run()
+    // binding overload that accepts a list, cleared by the scalar overload.
+    void setDtoutSchedule(std::vector<double> intervals) {
+        m_dtout_schedule = std::move(intervals);
+        m_dtout_idx = 0;
+    }
+
     // Shared boundary-condition setters (NVI — implemented once here;
     // app-specific wiring goes through the protected hooks below).
     // Uniform power (broadcast to all layers).
@@ -257,6 +267,20 @@ protected:
     std::string         m_snapshot_prefix   = "";
     std::vector<double> m_snapshot_timings  = {};
     int                 m_snapshot_count    = 0;
+
+    // Variable output-interval schedule (see setDtoutSchedule).
+    std::vector<double> m_dtout_schedule = {};
+    size_t              m_dtout_idx      = 0;
+
+    // Next output interval: draws from the schedule when one is set (last
+    // entry repeats after exhaustion), otherwise returns fallback (the
+    // scalar dtout passed to run()). Called once per output event.
+    double nextDtout(double fallback) {
+        if (m_dtout_schedule.empty()) return fallback;
+        if (m_dtout_idx < m_dtout_schedule.size())
+            return m_dtout_schedule[m_dtout_idx++];
+        return m_dtout_schedule.back();
+    }
 };
 
 } // namespace fred

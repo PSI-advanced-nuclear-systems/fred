@@ -268,11 +268,13 @@ void FredRodSolver::run(double tend, double dtout, bool all_steps, int threads) 
         if (nd == 0) {
             std::cout << "FRED-ROD: quasi-static (all-algebraic) — Newton at each output time\n";
             storeOutput(0.0);
-            double tout = dtout;
-            while (tout <= tend + 0.5 * dtout) {
+            double dt_cur = nextDtout(dtout);
+            double tout = dt_cur;
+            while (tout <= tend + 0.5 * dt_cur) {
                 m_res.solveMechanicalIC(m_state, tout, m_rtol, m_atol);
                 storeOutput(tout);
-                tout += dtout;
+                dt_cur = nextDtout(dtout);
+                tout += dt_cur;
             }
             std::cout << "FRED-ROD: done\n";
             closeH5File();

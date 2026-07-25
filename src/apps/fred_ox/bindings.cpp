@@ -133,12 +133,32 @@ void bind_fred_ox(py::module_& m) {
              py::arg("filename"),
              "Path to HDF5 output file. When set, each output step is written to the file\n"
              "immediately (crash-safe) and in-memory vectors are trimmed to 1 entry.")
-        .def("run", &FredOxSolver::run,
+        .def("run", [](FredOxSolver& s, double tend, double dtout,
+                       bool all_steps, int threads) {
+                 s.setDtoutSchedule({});   // scalar call: constant interval
+                 s.run(tend, dtout, all_steps, threads);
+             },
              py::arg("tend"), py::arg("dtout"), py::arg("all_steps") = false,
              py::arg("threads") = 1,
              "Run to tend [s], output every dtout [s]. all_steps=True records every IDA step. "
              "threads: number of OpenMP threads for the per-axial-layer residual loop "
              "(default 1 = serial).")
+        .def("run", [](FredOxSolver& s, double tend, std::vector<double> dtout,
+                       bool all_steps, int threads) {
+                 if (dtout.empty())
+                     throw std::invalid_argument("dtout list must not be empty");
+                 for (double d : dtout)
+                     if (d <= 0.0)
+                         throw std::invalid_argument("all dtout entries must be > 0");
+                 const double dt0 = dtout.front();
+                 s.setDtoutSchedule(std::move(dtout));
+                 s.run(tend, dt0, all_steps, threads);
+             },
+             py::arg("tend"), py::arg("dtout"), py::arg("all_steps") = false,
+             py::arg("threads") = 1,
+             "Run with a variable output-interval schedule: dtout is a list of "
+             "successive intervals [s]. The last entry repeats if the list ends "
+             "before tend. Useful for forcing very small steps early in a run.")
         .def("time_points",          &FredOxSolver::timePoints)
         .def("temperatures",         [](const FredOxSolver& s) {
                  auto& v  = s.temperatures();

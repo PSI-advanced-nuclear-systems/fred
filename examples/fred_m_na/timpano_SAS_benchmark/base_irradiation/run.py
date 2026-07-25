@@ -105,9 +105,37 @@ clad = fred.HT9(reference_density=7634.5)
 # Solver
 # ---------------------------------------------------------------------------
 solver = fred.FredMNaSolver(g, fuel, clad)
+
+# --- Model choices ---------------------------------------------------------
+#
+# Coolant HTC correlation (set_coolant_channel(corr=...)):
+#   HtcCorrelation.Mikityuk — liquid-metal rod-bundle correlation (default)
+#   HtcCorrelation.Subbotin — simplified liquid-metal correlation (used here)
+
+# GRSIS bubble/fission-gas parameter set (set_grsis_data_mode):
+#   GrsisDataMode.FEAST  — FEAST-METAL calibrated parameters (default)
+#   GrsisDataMode.GRSIS  — original GRSIS parameters (Lee 1999)
+#   (the bubble model can also be disabled entirely: set_enable_grsis(False))
 solver.set_grsis_data_mode(fred.GrsisDataMode.FEAST)
+
+# Sodium gap conductance (set_sodium_mode; igap in legacy Gaphtc.for):
+#   SodiumMode.TDependent — k_Na(T) polynomial [W/(m·K)] (default)
+#   SodiumMode.Constant   — constant k_Na = 62.9 W/(m·K), gap conductance
+#                           capped to [1e5, 1e6] W/(m²·K)
 solver.set_sodium_mode(fred.SodiumMode.TDependent)
-solver.set_conductivity_model(fred.ConductivityModel.EsfrSimple)
+
+# U-Pu-Zr irradiated thermal conductivity (set_conductivity_model; f in
+# legacy Flamb.for; see theory manual sec. "U-Pu-Zr Thermal Conductivity"):
+#   ConductivityModel.DetailedNaSodium — legacy f=1 Maxwell-Eucken with sodium
+#       infiltration (Karahan 2009): resolves per-node gas- vs Na-filled
+#       porosity; the recommended (and default) model
+#   ConductivityModel.EmpiricalBurnup  — legacy f=2 piecewise burnup-only correction
+#       (Karahan 2009); saturates at 0.7·k_fresh above 5 at%
+#   ConductivityModel.SigmoidBurnup    — legacy f=3 smooth sigmoid burnup-only fit
+#       (ESFR-SIMPLE project); saturates near 0.64·k_fresh. Used here to
+#       match the SAS4A/legacy-FRED benchmark setup.
+solver.set_conductivity_model(fred.ConductivityModel.DetailedNaSodium)
+# ---------------------------------------------------------
 solver.set_power_density_history_per_layer(power_times, power_qqv)
 solver.set_coolant_channel(
     dhyd          = 3.887e-3,
@@ -143,21 +171,8 @@ OUTPUT_H5  = os.path.join(THIS_DIR, "fred_m_na_base_irradiation.h5")
 HOTSTART_H5 = os.path.join(THIS_DIR, "fred_m_na_hotstart.h5")
 
 print("=" * 70)
-print("FRED-M-Na: Timpano SAS4A Base Irradiation Benchmark")
+print("FRED-M-Na: thermal conductivity model: fred.ConductivityModel.DetailedNaSodium")
 print("=" * 70)
-print(f"  Fuel: U-Pu-Zr  Pu={fuel.pu_content():.4f}  Zr={fuel.zr_content():.4f}")
-print(f"  rfi={RFI*1e3:.3f} mm  rfo={RFO*1e3:.3f} mm  rci={RCI*1e3:.3f} mm  rco={RCO*1e3:.3f} mm")
-print(f"  nf={NF}  nc={NC}  nz={NZ}  dz={DZ0*1e3:.1f} mm  active height={NZ*DZ0:.3f} m")
-print(f"  Conductivity: EsfrSimple (f=3 ESFR-SIMPLE sigmoid)  |  HTC: Subbotin")
-print(f"  tend={TEND/D2S:.0f} d  dtout={DTOUT/D2S:.0f} d  → HDF5: {os.path.basename(OUTPUT_H5)}")
-print()
-
-# Single 1-day step from cold start → thermal equilibrium with negligible burnup.
-# Used for the "beginning of life" temperature comparison panel instead of the
-# literal t=0 (cold, 633 K flat) or t=90 d (first main output, carries some burnup).
-solver.set_output_file(HOTSTART_H5)
-solver.run(1 * D2S, 1 * D2S)
-print("Hot-start capture complete (t=1 d).")
 
 # Full irradiation run (resets to t=0 internally, independent of the above).
 solver.set_output_file(OUTPUT_H5)
@@ -226,7 +241,7 @@ z_centers = np.array([0.01562 + j * 0.03125 for j in range(NZ)])
 fig, axes = plt.subplots(2, 3, figsize=(16, 10))
 fig.suptitle(
     "FRED-M-Na vs Legacy FRED-M vs SAS4A — Timpano SAS4A Benchmark\n"
-    f"U-Pu-Zr (13.25%Pu / 10%Zr) HT-9 clad | Na coolant | EsfrSimple + Subbotin",
+    f"U-Pu-Zr (13.25%Pu / 10%Zr) HT-9 clad | Na coolant | SigmoidBurnup + Subbotin",
     fontsize=11
 )
 

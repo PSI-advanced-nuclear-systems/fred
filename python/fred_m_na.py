@@ -40,7 +40,7 @@ import _fred_m_na as _cpp   # compiled C++ extension
 
 from fred_geometry import FuelRodGeometry
 from fred_materials import FuelPellet, Cladding, GapFill, _validate_density
-from fred_solver_base import FredSolverBaseSubchannel
+from fred_solver_base import FredSolverBaseSubchannel, _check_dtout
 
 
 # ---------------------------------------------------------------------------
@@ -235,7 +235,11 @@ class FredMNaSolver(FredSolverBaseSubchannel):
         Parameters
         ----------
         tend        : float  end time [s]
-        dtout       : float  output interval [s]
+        dtout       : float or sequence of floats
+                      Scalar: constant output interval [s].  Sequence:
+                      variable schedule of successive intervals [s]; the
+                      last entry repeats until tend, and np.sum(dtout)
+                      must be >= tend.
         output_file : str    path to HDF5 output file; written incrementally
         all_steps   : bool   record every internal IDA step (debugging)
         threads     : int    number of OpenMP threads for the per-axial-layer
@@ -243,10 +247,7 @@ class FredMNaSolver(FredSolverBaseSubchannel):
         """
         if tend <= 0:
             raise ValueError(f"tend must be positive, got {tend!r}")
-        if dtout <= 0:
-            raise ValueError(f"dtout must be positive, got {dtout!r}")
-        if dtout > tend:
-            raise ValueError(f"dtout ({dtout}) must be <= tend ({tend})")
+        dtout = _check_dtout(tend, dtout)
         if threads < 1:
             raise ValueError(f"threads must be >= 1, got {threads!r}")
         if self._channel is None:

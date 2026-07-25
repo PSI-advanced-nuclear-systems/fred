@@ -55,6 +55,39 @@ def _check_per_layer_timetable(name, times, per_layer, nz):
     return times, [list(v) for v in per_layer]
 
 
+def _check_dtout(tend, dtout):
+    """Validate dtout against tend and normalise it.
+
+    dtout may be a positive scalar (constant output interval) or a sequence
+    of positive intervals (variable output schedule, e.g. very small steps
+    early in a run to help the solver through a stiff startup).
+
+    Returns a float for the scalar case, or a list of floats for a schedule.
+    For a schedule every entry must be > 0 and np.sum(dtout) >= tend, so the
+    supplied intervals cover the whole run (the C++ side would repeat the
+    last entry, but an under-covering schedule is almost always an input
+    mistake).
+    """
+    if np.isscalar(dtout) and not isinstance(dtout, (str, bytes)):
+        dtout = float(dtout)
+        if dtout <= 0:
+            raise ValueError(f"dtout must be positive, got {dtout!r}")
+        if dtout > tend:
+            raise ValueError(f"dtout ({dtout}) must be <= tend ({tend})")
+        return dtout
+    arr = np.asarray(dtout, dtype=float).ravel()
+    if arr.size == 0:
+        raise ValueError("dtout schedule must not be empty")
+    if np.any(arr <= 0):
+        raise ValueError(
+            f"all dtout entries must be positive; smallest is {arr.min()!r}")
+    if np.sum(arr) < tend:
+        raise ValueError(
+            f"dtout schedule covers only {np.sum(arr)} s but tend is {tend} s; "
+            f"np.sum(dtout) must be >= tend")
+    return [float(x) for x in arr]
+
+
 # ---------------------------------------------------------------------------
 # FredSolverBase — common to all apps
 # ---------------------------------------------------------------------------

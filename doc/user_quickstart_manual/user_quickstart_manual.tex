@@ -178,6 +178,125 @@ Pressure / stress  & MPa      & Megapascals \\
 \end{center}
 
 % ===========================================================================
+\section{Time Control Features}
+\label{sec:time-control}
+% ===========================================================================
+
+Every FRED application (\texttt{FredRodSolver}, \texttt{FredOxSolver},
+\texttt{FredMNaSolver}) shares the same time-control machinery around
+\texttt{run(tend, dtout)}: the solver takes its own internal time steps
+(adaptive IDA steps for FRED-ROD/FRED-OX, fixed backward-Euler steps for
+FRED-M-Na) and produces \emph{output events} every \texttt{dtout} seconds.
+Two persistence mechanisms hook into those output events.
+
+\subsection{Variable output schedule (vector \texttt{dtout})}
+
+\texttt{dtout} may be a scalar (constant output interval, as in every
+example above) \emph{or} a sequence of successive intervals:
+
+\begin{lstlisting}
+# very fine early, coarse later (sums to >= tend)
+solver.run(tend=200.0,
+           dtout=[0.1]*10 + [0.5]*8 + [2.0]*10 + [25.0]*7)
+\end{lstlisting}
+
+Small early intervals do more than refine the output sampling: for
+FRED-ROD/FRED-OX each output time is an IDA stop time, so a fine early
+schedule also bounds the solver's internal step through the stiffest part
+of a run (power step, contact onset) and can help it through numerical
+instabilities; for FRED-M-Na the internal backward-Euler step follows the
+schedule whenever no explicit \texttt{set\_step\_size} is given.  If the
+list ends before \texttt{tend} the last entry repeats, and the Python
+wrappers require \texttt{np.sum(dtout) >= tend} so an under-covering
+schedule is rejected up front.  Checkpoints and snapshots (below) fire at
+the scheduled output events exactly as with a scalar \texttt{dtout}.  See
+\texttt{examples/fred\_rod/dtout\_example/} for a scalar/vector pair of
+scripts that validate the produced output times against the request.
+
+\subsection{Checkpoint files --- crash recovery and debugging}
+
+A checkpoint is a single, overwriting binary file
+(\texttt{<prefix>\_checkpoint.chk}) intended for fault recovery.  It is
+disabled by default; enable it by giving the solver a file prefix before
+\texttt{run()}:
+
+\begin{lstlisting}
+solver.set_checkpoint_prefix("ckpt/myrun")   # -> ckpt/myrun_checkpoint.chk
+solver.run(tend, dtout)
+\end{lstlisting}
+
+Once enabled, the checkpoint is rewritten \textbf{at every \texttt{dtout}
+output event} --- not at every internal step --- so after a crash (power
+loss, cluster time limit, a solver failure you are investigating) at most
+one output interval of progress is lost.  To resume:
+
+\begin{lstlisting}
+solver = make_solver()                        # same geometry/materials/BCs
+solver.load_checkpoint("ckpt/myrun_checkpoint.chk")
+print(solver.restart_time())                  # saved physical time [s]
+solver.run(tend, dtout)                       # continues from restart_time()
+\end{lstlisting}
+
+Simulation time is \emph{preserved}: \texttt{restart\_time()} returns the
+time at which the checkpoint was written, and the run continues from there.
+Restarted trajectories match an uninterrupted reference run to within
+$10^{-6}$ relative error (see the comparison scripts referenced below).
+
+\begin{infobox}[Checkpoints as a debug tool]
+  Beyond crash recovery, checkpoints are useful when hunting a failure that
+  occurs late in a long run: keep checkpointing enabled, let the run fail,
+  then reload the last checkpoint and re-run only the final interval ---
+  with more output (\texttt{all\_steps=True}), higher verbosity, or a
+  modified setting --- instead of repeating hours of preceding history.
+  Since the file is overwritten in place, choose a smaller \texttt{dtout}
+  if you want the recovery point to sit closer to the failure.
+\end{infobox}
+
+\subsection{Snapshot files --- staged simulations (base irradiation
+$\to$ transient)}
+
+A snapshot is a permanent restart-state file: the full physical state
+(temperatures, strains, gap state, burnup/fission-gas state in FRED-OX and
+FRED-M-Na) is saved, but on reload the simulation clock is \emph{reset to
+zero}.  This is the mechanism for multi-stage studies where a long
+steady-state base-irradiation run pre-conditions the fuel, and one or more
+fast transients are then started from that state with fresh time
+coordinates:
+
+\begin{lstlisting}
+# Stage 1: base irradiation, saves numbered frames
+solver.set_snapshot_prefix("snap/esfr_pin_base",
+                           snapshot_times=[t_mid])  # optional extra frames
+solver.run(t_irr, dtout)      # final frame is always saved automatically
+# -> snap/esfr_pin_base_frame1.snapshot, ..._frame2.snapshot
+
+# Stage 2: transient from the irradiated state
+solver2 = make_transient_solver()
+solver2.load_snapshot("snap/esfr_pin_base_frame1.snapshot")
+print(solver2.restart_time())  # 0.0 -- time reset, state preserved
+solver2.run(t_transient, dtout_transient)
+\end{lstlisting}
+
+Snapshots are written at the user-supplied \texttt{snapshot\_times}
+(matched to the nearest output event) and always at the end of the run;
+unlike the checkpoint they are numbered
+(\texttt{<prefix>\_frame1.snapshot}, \texttt{\_frame2}, \ldots) and never
+overwrite each other, so you can build a library of pre-conditioned states
+(e.g.\ several burnup levels) and launch transients from each.
+
+\begin{infobox}[Worked examples]
+  The complete base-irradiation$\to$transient workflow is
+  \texttt{examples/fred\_ox/ESFR\_pin/} (Section~\ref{sec:esfr}): the
+  \texttt{base\_irradiation} script saves an end-of-irradiation snapshot,
+  and the \texttt{ULOF\_transient} / \texttt{UTOP\_transient} scripts load
+  it to run 43~s and 1000~s transients from the 600-day irradiated state.
+  The mechanics of both features are demonstrated step by step in
+  \texttt{examples/fred\_rod/restart\_snapshot/} (Section~\ref{sec:rs})
+  and their FRED-OX counterparts (Sections~\ref{sec:ox-restart}
+  and~\ref{sec:ox-rs}).
+\end{infobox}
+
+% ===========================================================================
 \part{FRED-ROD}
 \label{part:rod}
 % ===========================================================================
@@ -204,6 +323,7 @@ most complex:
         pseudo-time hot start, and when \emph{not} to use it.
   \item \textbf{\texttt{hdf5\_output}} --- writing and reading results in HDF5 format.
   \item \textbf{\texttt{restart\_snapshot}} --- fault-recovery checkpoints and physical-state snapshots.
+  \item \textbf{\texttt{dtout\_example}} --- constant vs.\ variable output-interval schedules (scalar and vector \texttt{dtout}).
   \item \textbf{\texttt{python\_materials}} --- defining custom material correlations in Python.
   \item \textbf{\texttt{advanced\_prototyping}} --- the Python$\to$C++ prototyping loop for gap materials.
 \end{enumerate}
@@ -215,10 +335,11 @@ most complex:
   introduces the gap-contact event logic that most real rods exercise.
   Example 5 (hot start) is easiest to understand \emph{after} Example 3,
   since it directly replaces the manual power-ramp workaround used there.
-  Examples 6--7 are about persistence and I/O, independent of the underlying
-  physics, so they can be read once you are comfortable with any of the
-  earlier runs. Examples 8--9 are for users who want to extend FRED-ROD with
-  new material correlations, and assume familiarity with Examples 1--3.
+  Examples 6--8 are about persistence, I/O, and time control, independent of
+  the underlying physics, so they can be read once you are comfortable with
+  any of the earlier runs. Examples 9--10 are for users who want to extend
+  FRED-ROD with new material correlations, and assume familiarity with
+  Examples 1--3.
 \end{infobox}
 
 % ===========================================================================
@@ -863,7 +984,71 @@ The key difference between checkpoint and snapshot is the time-reset:
 \end{infobox}
 
 % ===========================================================================
-\section{Example 8: Python-Defined Custom Materials}
+\section{Example 8: Variable Output Intervals (\texttt{dtout} as a Vector)}
+\label{sec:dtout}
+% ===========================================================================
+
+\textbf{Files:} \texttt{examples/fred\_rod/dtout\_example/\{run\_scalar,run\_vector\}.py}
+
+\medskip
+\texttt{run(tend, dtout)} accepts \texttt{dtout} either as a scalar
+(constant output interval --- every example so far) or as a \emph{vector} of
+successive intervals (Section~\ref{sec:time-control}).  This example runs
+the same coupled thermo-mechanical rod as Example~3 both ways and validates,
+in postprocessing, that the solver produced output at exactly the requested
+times.
+
+\paragraph{Scalar (\texttt{run\_scalar.py}).}
+
+\begin{lstlisting}
+solver.run(tend=200.0, dtout=10.0)     # t = 0, 10, 20, ..., 200 s
+
+times    = np.asarray(solver.time_points())
+expected = np.arange(0.0, 200.0 + 5.0, 10.0)
+# validation: max |times - expected| and max |diff(times) - diff(expected)|
+\end{lstlisting}
+
+\paragraph{Vector (\texttt{run\_vector.py}).}
+
+\begin{lstlisting}
+# very fine while the power ramp hits, coarse at steady state
+# (sums to 205 s >= tend; np.sum(dtout) >= tend is enforced)
+schedule = [0.1]*10 + [0.5]*8 + [2.0]*10 + [25.0]*7
+solver.run(tend=200.0, dtout=schedule)
+
+times    = np.asarray(solver.time_points())
+expected = np.concatenate([[0.0], np.cumsum(schedule)])
+expected = expected[expected <= 200.0 + 1e-9]
+\end{lstlisting}
+
+Both scripts print a PASS/FAIL report (both intervals and absolute times
+match the request to machine precision), \texttt{run\_vector.py}
+additionally checks that an under-covering schedule
+(\texttt{np.sum(dtout) < tend}) raises \texttt{ValueError}, and a comparison
+plot (\texttt{dtout\_validation.png}) shows the two runs' output spacing and
+their overlaying peak-fuel-temperature trajectories.
+
+\paragraph{Why force small early intervals?}
+
+For FRED-ROD/FRED-OX every output time is an IDA stop time, so a fine early
+schedule also \emph{bounds the solver's internal step} through the stiffest
+part of a run (power step, contact onset) --- a useful lever against
+numerical instabilities that is cheaper than shrinking \texttt{dtout}
+globally.  Once past the transient, the intervals grow and the run costs no
+more than a constant-\texttt{dtout} one.
+
+\begin{infobox}[Same feature in FRED-M-Na]
+  \texttt{examples/fred\_m\_na/dtout\_example/} contains the equivalent
+  scalar/vector pair for FRED-M-Na.  There the effect is even more direct:
+  the fixed backward-Euler integrator takes its internal step from the
+  output interval whenever no explicit \texttt{set\_step\_size()} is given,
+  so the vector schedule refines the \emph{physics} steps themselves
+  (visible in the run banner: \texttt{fixed dt=8640 s} during the 0.1-day
+  entries vs.\ \texttt{86400 s} in the scalar run).
+\end{infobox}
+
+% ===========================================================================
+\section{Example 9: Python-Defined Custom Materials}
 \label{sec:pymat}
 % ===========================================================================
 
@@ -1045,7 +1230,7 @@ for T in [400, 700, 1000, 1400]:
 \end{warningbox}
 
 % ===========================================================================
-\section{Example 9: Advanced Prototyping --- Python to C++}
+\section{Example 10: Advanced Prototyping --- Python to C++}
 \label{sec:proto}
 % ===========================================================================
 

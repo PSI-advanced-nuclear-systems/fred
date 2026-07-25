@@ -195,7 +195,10 @@ void FredIdaSolverBase::afterGapEventsHandled(double tret, double dtout) {
 // ---------------------------------------------------------------------------
 void FredIdaSolverBase::runTimeLoop(double tend, double dtout, bool all_steps, double t_start) {
     std::vector<int> rootsfound(m_geom.nz, 0);
-    double t_next_out = t_start + dtout, tret = t_start;
+    // dt_cur: current output interval — the scalar dtout, or the next entry
+    // of the user-supplied schedule (setDtoutSchedule) when one is active.
+    double dt_cur = nextDtout(dtout);
+    double t_next_out = t_start + dt_cur, tret = t_start;
     double t_loop_prev = t_start;  // tracks last accepted step time for afterAcceptedStep dt
     N_Vector y  = (N_Vector)m_y;
     N_Vector yp = (N_Vector)m_yp;
@@ -266,11 +269,11 @@ void FredIdaSolverBase::runTimeLoop(double tend, double dtout, bool all_steps, d
                     event = true;
                 }
             }
-            if (event) afterGapEventsHandled(tret, dtout);
+            if (event) afterGapEventsHandled(tret, dt_cur);
         }
 
         bool at_dtout = (retval == IDA_TSTOP_RETURN ||
-                         tret >= t_next_out - 1.0e-12 * dtout);
+                         tret >= t_next_out - 1.0e-12 * dt_cur);
         bool saved_snap_this_step = false;
 
         if (at_dtout) {
@@ -289,7 +292,7 @@ void FredIdaSolverBase::runTimeLoop(double tend, double dtout, bool all_steps, d
             // User-specified snapshot timings: save and drain matched entries.
             if (!m_snapshot_prefix.empty()) {
                 for (auto it = pending_snaps.begin(); it != pending_snaps.end(); ) {
-                    if (std::abs(tret - *it) < 0.5 * dtout) {
+                    if (std::abs(tret - *it) < 0.5 * dt_cur) {
                         ++m_snapshot_count;
                         std::string fname = m_snapshot_prefix + "_frame"
                             + std::to_string(m_snapshot_count) + ".snapshot";
@@ -302,13 +305,14 @@ void FredIdaSolverBase::runTimeLoop(double tend, double dtout, bool all_steps, d
                 }
             }
 
-            t_next_out += dtout;
+            dt_cur = nextDtout(dtout);
+            t_next_out += dt_cur;
         } else if (all_steps && !is_root) {
             unpackCurrentState();
             storeOutput(tret);
         }
 
-        if (tret >= tend - 1.0e-12 * dtout) {
+        if (tret >= tend - 1.0e-12 * dt_cur) {
             // Always save a final snapshot (skip if we just saved one at this time).
             if (!m_snapshot_prefix.empty() && !saved_snap_this_step) {
                 ++m_snapshot_count;

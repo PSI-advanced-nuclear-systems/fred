@@ -5,103 +5,113 @@
 \@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{3}{section.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {1.1}Common workflow}{3}{subsection.1.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {1.2}Unit conventions}{4}{subsection.1.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {part}{I\hspace  {1em}FRED-ROD}{4}{part.1}\protected@file@percent }
-\newlabel{part:rod}{{I}{4}{FRED-ROD}{part.1}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {2}Recommended Example Order}{4}{section.2}\protected@file@percent }
-\newlabel{sec:rod-order}{{2}{4}{Recommended Example Order}{section.2}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {3}Example 1: Heat Conduction Only}{5}{section.3}\protected@file@percent }
-\newlabel{sec:hco}{{3}{5}{Example 1: Heat Conduction Only}{section.3}{}}
-\@writefile{toc}{\contentsline {paragraph}{Geometry setup.}{5}{lstlisting.-2}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Physics toggles and boundary conditions.}{5}{lstlisting.-3}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Analytical check.}{6}{section*.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Post-processing.}{6}{lstlisting.-4}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {4}Example 2: Stress-Strain Only}{6}{section.4}\protected@file@percent }
-\newlabel{sec:sso}{{4}{6}{Example 2: Stress-Strain Only}{section.4}{}}
-\@writefile{toc}{\contentsline {paragraph}{Physics and boundary conditions.}{6}{lstlisting.-5}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Expected steady-state stress.}{7}{section*.7}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Results retrieval.}{7}{lstlisting.-6}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5}Example 3: Heat Conduction + Stress-Strain}{7}{section.5}\protected@file@percent }
-\newlabel{sec:hcss}{{5}{7}{Example 3: Heat Conduction + Stress-Strain}{section.5}{}}
-\@writefile{toc}{\contentsline {paragraph}{Why a slow power ramp?}{7}{lstlisting.-7}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Enabling both physics.}{7}{lstlisting.-8}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Accessing combined results.}{8}{lstlisting.-9}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Expected steady-state behaviour.}{8}{section*.12}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {6}Example 4: Gap Close and Reopen}{8}{section.6}\protected@file@percent }
-\newlabel{sec:gcr}{{6}{8}{Example 4: Gap Close and Reopen}{section.6}{}}
-\@writefile{toc}{\contentsline {paragraph}{Geometry with a tight as-fabricated gap.}{8}{lstlisting.-10}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Multi-phase power history.}{9}{lstlisting.-11}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Monitoring gap state.}{9}{lstlisting.-12}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{What to expect.}{9}{section*.16}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {7}Example 5: Hot Start vs Cold Start}{9}{section.7}\protected@file@percent }
-\newlabel{sec:hot-rod}{{7}{9}{Example 5: Hot Start vs Cold Start}{section.7}{}}
-\@writefile{toc}{\contentsline {paragraph}{Cold vs hot start.}{10}{lstlisting.-14}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{What to expect.}{10}{section*.18}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {8}Example 6: HDF5 Output}{10}{section.8}\protected@file@percent }
-\newlabel{sec:hdf5}{{8}{10}{Example 6: HDF5 Output}{section.8}{}}
-\@writefile{toc}{\contentsline {paragraph}{Using \texttt  {fred\_input} instead of \texttt  {fred\_rod}.}{11}{section*.19}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Running with HDF5 output.}{11}{lstlisting.-16}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Two output modes.}{11}{lstlisting.-17}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{HDF5 file layout.}{11}{section*.22}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Reading results back.}{12}{lstlisting.-19}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {9}Example 7: Restart and Snapshot}{12}{section.9}\protected@file@percent }
-\newlabel{sec:rs}{{9}{12}{Example 7: Restart and Snapshot}{section.9}{}}
-\@writefile{toc}{\contentsline {paragraph}{Script 0: Full reference run.}{12}{section*.24}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Script 1: Checkpoint restart.}{13}{section*.25}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Script 2: Continuation via snapshot.}{13}{section*.26}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {10}Example 8: Python-Defined Custom Materials}{14}{section.10}\protected@file@percent }
-\newlabel{sec:pymat}{{10}{14}{Example 8: Python-Defined Custom Materials}{section.10}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {10.1}Subclassing \texttt  {FuelPelletMaterial}}{14}{subsection.10.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {10.2}Subclassing \texttt  {CladdingMaterial}}{15}{subsection.10.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {10.3}Required abstract methods}{15}{subsection.10.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {10.4}Using the custom materials in a simulation}{15}{subsection.10.4}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Abstract methods that must be implemented in Python subclasses.}}{16}{table.1}\protected@file@percent }
-\newlabel{tab:abstract}{{1}{16}{Abstract methods that must be implemented in Python subclasses}{table.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {10.5}Verifying your material with the built-in API}{16}{subsection.10.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {11}Example 9: Advanced Prototyping --- Python to C++}{17}{section.11}\protected@file@percent }
-\newlabel{sec:proto}{{11}{17}{Example 9: Advanced Prototyping --- Python to C++}{section.11}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {11.1}Physics: fission gas release and gap conductivity}{17}{subsection.11.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{FGR fraction (Waltar-Reynolds, restructured zone):}{17}{section*.27}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Molar balance:}{17}{section*.28}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Geometric-mean mixture conductivity (FRED.f90 \texttt  {gaphtc}):}{17}{section*.29}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {11.2}Step 1: Python prototype (\texttt  {run\_python.py})}{18}{subsection.11.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {11.3}Step 2: Compiled C++ equivalent (\texttt  {run\_cpp.py})}{19}{subsection.11.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {11.4}Adding your own compiled gap material}{19}{subsection.11.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {12}FRED-ROD API Reference}{20}{section.12}\protected@file@percent }
-\newlabel{sec:api-rod}{{12}{20}{FRED-ROD API Reference}{section.12}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {12.1}Geometry: \texttt  {FuelRodGeometry}}{20}{subsection.12.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {12.2}Built-in materials}{20}{subsection.12.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {12.3}Solver methods: \texttt  {FredRodSolver}}{20}{subsection.12.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {13}FRED-ROD Troubleshooting}{21}{section.13}\protected@file@percent }
-\newlabel{sec:trouble-rod}{{13}{21}{FRED-ROD Troubleshooting}{section.13}{}}
-\@writefile{toc}{\contentsline {part}{II\hspace  {1em}FRED-OX}{22}{part.2}\protected@file@percent }
-\newlabel{part:ox}{{II}{22}{FRED-OX}{part.2}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {14}Recommended Example Order}{22}{section.14}\protected@file@percent }
-\newlabel{sec:ox-order}{{14}{22}{Recommended Example Order}{section.14}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {15}Example OX-1: Base Irradiation}{22}{section.15}\protected@file@percent }
-\newlabel{sec:ox-base}{{15}{22}{Example OX-1: Base Irradiation}{section.15}{}}
-\@writefile{toc}{\contentsline {paragraph}{Per-layer boundary conditions.}{23}{lstlisting.-31}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{New result accessors.}{23}{lstlisting.-32}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Legacy comparison at $t=86400$~s.}{23}{section*.32}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {16}Example OX-2: Hot Start vs Cold Start}{24}{section.16}\protected@file@percent }
-\newlabel{sec:hot-ox}{{16}{24}{Example OX-2: Hot Start vs Cold Start}{section.16}{}}
-\@writefile{toc}{\contentsline {paragraph}{What to expect.}{24}{section*.33}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {17}Example OX-3: HDF5 Output}{24}{section.17}\protected@file@percent }
-\newlabel{sec:ox-hdf5}{{17}{24}{Example OX-3: HDF5 Output}{section.17}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {18}Example OX-4: Restart (Checkpoint)}{25}{section.18}\protected@file@percent }
-\newlabel{sec:ox-restart}{{18}{25}{Example OX-4: Restart (Checkpoint)}{section.18}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {19}Example OX-5: Restart and Snapshot}{25}{section.19}\protected@file@percent }
-\newlabel{sec:ox-rs}{{19}{25}{Example OX-5: Restart and Snapshot}{section.19}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {20}Example OX-6: ESFR Pin --- Base Irradiation and Transients}{26}{section.20}\protected@file@percent }
-\newlabel{sec:esfr}{{20}{26}{Example OX-6: ESFR Pin --- Base Irradiation and Transients}{section.20}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {20.1}\texttt  {base\_irradiation}: 600-day benchmark}{26}{subsection.20.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {20.2}\texttt  {ULOF\_transient}: Unprotected Loss of Flow (43~s)}{26}{subsection.20.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {20.3}\texttt  {UTOP\_transient}: Unprotected Transient Over-Power (1000~s)}{27}{subsection.20.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {21}FRED-OX API Reference}{27}{section.21}\protected@file@percent }
-\newlabel{sec:api-ox}{{21}{27}{FRED-OX API Reference}{section.21}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {21.1}Materials}{27}{subsection.21.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {21.2}Solver methods: \texttt  {FredOxSolver} --- additions over \texttt  {FredRodSolver}}{27}{subsection.21.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {22}FRED-OX Troubleshooting}{28}{section.22}\protected@file@percent }
-\newlabel{sec:trouble-ox}{{22}{28}{FRED-OX Troubleshooting}{section.22}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {23}Beyond FRED-ROD and FRED-OX: FRED-M-Na}{28}{section.23}\protected@file@percent }
-\newlabel{sec:mna-pointer}{{23}{28}{Beyond FRED-ROD and FRED-OX: FRED-M-Na}{section.23}{}}
-\gdef \@abspage@last{28}
+\@writefile{toc}{\contentsline {section}{\numberline {2}Time Control Features}{4}{section.2}\protected@file@percent }
+\newlabel{sec:time-control}{{2}{4}{Time Control Features}{section.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Variable output schedule (vector \texttt  {dtout})}{4}{subsection.2.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Checkpoint files --- crash recovery and debugging}{4}{subsection.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Snapshot files --- staged simulations (base irradiation $\to $ transient)}{5}{subsection.2.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {part}{I\hspace  {1em}FRED-ROD}{5}{part.1}\protected@file@percent }
+\newlabel{part:rod}{{I}{5}{FRED-ROD}{part.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3}Recommended Example Order}{6}{section.3}\protected@file@percent }
+\newlabel{sec:rod-order}{{3}{6}{Recommended Example Order}{section.3}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Example 1: Heat Conduction Only}{6}{section.4}\protected@file@percent }
+\newlabel{sec:hco}{{4}{6}{Example 1: Heat Conduction Only}{section.4}{}}
+\@writefile{toc}{\contentsline {paragraph}{Geometry setup.}{7}{lstlisting.-6}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Physics toggles and boundary conditions.}{7}{lstlisting.-7}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Analytical check.}{7}{section*.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Post-processing.}{7}{lstlisting.-8}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5}Example 2: Stress-Strain Only}{8}{section.5}\protected@file@percent }
+\newlabel{sec:sso}{{5}{8}{Example 2: Stress-Strain Only}{section.5}{}}
+\@writefile{toc}{\contentsline {paragraph}{Physics and boundary conditions.}{8}{lstlisting.-9}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Expected steady-state stress.}{8}{section*.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Results retrieval.}{8}{lstlisting.-10}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6}Example 3: Heat Conduction + Stress-Strain}{9}{section.6}\protected@file@percent }
+\newlabel{sec:hcss}{{6}{9}{Example 3: Heat Conduction + Stress-Strain}{section.6}{}}
+\@writefile{toc}{\contentsline {paragraph}{Why a slow power ramp?}{9}{lstlisting.-11}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Enabling both physics.}{9}{lstlisting.-12}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Accessing combined results.}{9}{lstlisting.-13}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Expected steady-state behaviour.}{10}{section*.12}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {7}Example 4: Gap Close and Reopen}{10}{section.7}\protected@file@percent }
+\newlabel{sec:gcr}{{7}{10}{Example 4: Gap Close and Reopen}{section.7}{}}
+\@writefile{toc}{\contentsline {paragraph}{Geometry with a tight as-fabricated gap.}{10}{lstlisting.-14}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Multi-phase power history.}{10}{lstlisting.-15}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Monitoring gap state.}{11}{lstlisting.-16}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{What to expect.}{11}{section*.16}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {8}Example 5: Hot Start vs Cold Start}{11}{section.8}\protected@file@percent }
+\newlabel{sec:hot-rod}{{8}{11}{Example 5: Hot Start vs Cold Start}{section.8}{}}
+\@writefile{toc}{\contentsline {paragraph}{Cold vs hot start.}{11}{lstlisting.-18}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{What to expect.}{12}{section*.18}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {9}Example 6: HDF5 Output}{12}{section.9}\protected@file@percent }
+\newlabel{sec:hdf5}{{9}{12}{Example 6: HDF5 Output}{section.9}{}}
+\@writefile{toc}{\contentsline {paragraph}{Using \texttt  {fred\_input} instead of \texttt  {fred\_rod}.}{12}{section*.19}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Running with HDF5 output.}{13}{lstlisting.-20}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Two output modes.}{13}{lstlisting.-21}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{HDF5 file layout.}{13}{section*.22}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Reading results back.}{13}{lstlisting.-23}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {10}Example 7: Restart and Snapshot}{14}{section.10}\protected@file@percent }
+\newlabel{sec:rs}{{10}{14}{Example 7: Restart and Snapshot}{section.10}{}}
+\@writefile{toc}{\contentsline {paragraph}{Script 0: Full reference run.}{14}{section*.24}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Script 1: Checkpoint restart.}{15}{section*.25}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Script 2: Continuation via snapshot.}{15}{section*.26}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {11}Example 8: Variable Output Intervals (\texttt  {dtout} as a Vector)}{16}{section.11}\protected@file@percent }
+\newlabel{sec:dtout}{{11}{16}{Example 8: Variable Output Intervals (\texttt {dtout} as a Vector)}{section.11}{}}
+\@writefile{toc}{\contentsline {paragraph}{Scalar (\texttt  {run\_scalar.py}).}{16}{lstlisting.-28}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Vector (\texttt  {run\_vector.py}).}{16}{lstlisting.-29}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Why force small early intervals?}{16}{section*.29}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {12}Example 9: Python-Defined Custom Materials}{16}{section.12}\protected@file@percent }
+\newlabel{sec:pymat}{{12}{16}{Example 9: Python-Defined Custom Materials}{section.12}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.1}Subclassing \texttt  {FuelPelletMaterial}}{17}{subsection.12.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.2}Subclassing \texttt  {CladdingMaterial}}{17}{subsection.12.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.3}Required abstract methods}{18}{subsection.12.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Abstract methods that must be implemented in Python subclasses.}}{18}{table.1}\protected@file@percent }
+\newlabel{tab:abstract}{{1}{18}{Abstract methods that must be implemented in Python subclasses}{table.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.4}Using the custom materials in a simulation}{18}{subsection.12.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.5}Verifying your material with the built-in API}{19}{subsection.12.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {13}Example 10: Advanced Prototyping --- Python to C++}{19}{section.13}\protected@file@percent }
+\newlabel{sec:proto}{{13}{19}{Example 10: Advanced Prototyping --- Python to C++}{section.13}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {13.1}Physics: fission gas release and gap conductivity}{19}{subsection.13.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{FGR fraction (Waltar-Reynolds, restructured zone):}{20}{section*.30}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Molar balance:}{20}{section*.31}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Geometric-mean mixture conductivity (FRED.f90 \texttt  {gaphtc}):}{20}{section*.32}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {13.2}Step 1: Python prototype (\texttt  {run\_python.py})}{20}{subsection.13.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {13.3}Step 2: Compiled C++ equivalent (\texttt  {run\_cpp.py})}{21}{subsection.13.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {13.4}Adding your own compiled gap material}{21}{subsection.13.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {14}FRED-ROD API Reference}{22}{section.14}\protected@file@percent }
+\newlabel{sec:api-rod}{{14}{22}{FRED-ROD API Reference}{section.14}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {14.1}Geometry: \texttt  {FuelRodGeometry}}{22}{subsection.14.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {14.2}Built-in materials}{22}{subsection.14.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {14.3}Solver methods: \texttt  {FredRodSolver}}{22}{subsection.14.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {15}FRED-ROD Troubleshooting}{23}{section.15}\protected@file@percent }
+\newlabel{sec:trouble-rod}{{15}{23}{FRED-ROD Troubleshooting}{section.15}{}}
+\@writefile{toc}{\contentsline {part}{II\hspace  {1em}FRED-OX}{24}{part.2}\protected@file@percent }
+\newlabel{part:ox}{{II}{24}{FRED-OX}{part.2}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {16}Recommended Example Order}{24}{section.16}\protected@file@percent }
+\newlabel{sec:ox-order}{{16}{24}{Recommended Example Order}{section.16}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {17}Example OX-1: Base Irradiation}{24}{section.17}\protected@file@percent }
+\newlabel{sec:ox-base}{{17}{24}{Example OX-1: Base Irradiation}{section.17}{}}
+\@writefile{toc}{\contentsline {paragraph}{Per-layer boundary conditions.}{25}{lstlisting.-37}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{New result accessors.}{25}{lstlisting.-38}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Legacy comparison at $t=86400$~s.}{25}{section*.35}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {18}Example OX-2: Hot Start vs Cold Start}{26}{section.18}\protected@file@percent }
+\newlabel{sec:hot-ox}{{18}{26}{Example OX-2: Hot Start vs Cold Start}{section.18}{}}
+\@writefile{toc}{\contentsline {paragraph}{What to expect.}{26}{section*.36}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {19}Example OX-3: HDF5 Output}{26}{section.19}\protected@file@percent }
+\newlabel{sec:ox-hdf5}{{19}{26}{Example OX-3: HDF5 Output}{section.19}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {20}Example OX-4: Restart (Checkpoint)}{27}{section.20}\protected@file@percent }
+\newlabel{sec:ox-restart}{{20}{27}{Example OX-4: Restart (Checkpoint)}{section.20}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {21}Example OX-5: Restart and Snapshot}{27}{section.21}\protected@file@percent }
+\newlabel{sec:ox-rs}{{21}{27}{Example OX-5: Restart and Snapshot}{section.21}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {22}Example OX-6: ESFR Pin --- Base Irradiation and Transients}{28}{section.22}\protected@file@percent }
+\newlabel{sec:esfr}{{22}{28}{Example OX-6: ESFR Pin --- Base Irradiation and Transients}{section.22}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {22.1}\texttt  {base\_irradiation}: 600-day benchmark}{28}{subsection.22.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {22.2}\texttt  {ULOF\_transient}: Unprotected Loss of Flow (43~s)}{28}{subsection.22.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {22.3}\texttt  {UTOP\_transient}: Unprotected Transient Over-Power (1000~s)}{29}{subsection.22.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {23}FRED-OX API Reference}{29}{section.23}\protected@file@percent }
+\newlabel{sec:api-ox}{{23}{29}{FRED-OX API Reference}{section.23}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {23.1}Materials}{29}{subsection.23.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {23.2}Solver methods: \texttt  {FredOxSolver} --- additions over \texttt  {FredRodSolver}}{29}{subsection.23.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {24}FRED-OX Troubleshooting}{30}{section.24}\protected@file@percent }
+\newlabel{sec:trouble-ox}{{24}{30}{FRED-OX Troubleshooting}{section.24}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {25}Beyond FRED-ROD and FRED-OX: FRED-M-Na}{30}{section.25}\protected@file@percent }
+\newlabel{sec:mna-pointer}{{25}{30}{Beyond FRED-ROD and FRED-OX: FRED-M-Na}{section.25}{}}
+\gdef \@abspage@last{30}

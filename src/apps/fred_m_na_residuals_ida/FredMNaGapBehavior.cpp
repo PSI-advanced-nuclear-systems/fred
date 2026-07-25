@@ -12,6 +12,10 @@ void FredMNaGapBehavior::update(FredMNaLayerState& s,
     if (s.flag != "clos") {
         if (!s.gapOpen) {
             s.flag = "clos";
+            // Burnup at first hard contact (Baseir.for line 555); the ratchet
+            // is monotonic so this transition fires exactly once, matching
+            // legacy's flag_closure==1 gate. Consumed by sodiumInfiltration().
+            s.buhard_FIMA = s.bup_FIMA;
         } else if (s.gap - fanis_coef * gap0 <= rough) {
             s.flag = "soft";
         }

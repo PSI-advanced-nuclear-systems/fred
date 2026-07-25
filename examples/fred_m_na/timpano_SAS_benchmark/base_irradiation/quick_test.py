@@ -107,7 +107,7 @@ clad = fred.HT9(reference_density=7634.5)
 solver = fred.FredMNaSolver(g, fuel, clad)
 solver.set_grsis_data_mode(fred.GrsisDataMode.FEAST)
 solver.set_sodium_mode(fred.SodiumMode.TDependent)
-solver.set_conductivity_model(fred.ConductivityModel.EsfrSimple)
+solver.set_conductivity_model(fred.ConductivityModel.SigmoidBurnup)
 solver.set_power_density_history_per_layer(power_times, power_qqv)
 solver.set_coolant_channel(
     dhyd          = 3.887e-3,
@@ -137,7 +137,7 @@ print("=" * 70)
 print(f"  Fuel: U-Pu-Zr  Pu={fuel.pu_content():.4f}  Zr={fuel.zr_content():.4f}")
 print(f"  rfi={RFI*1e3:.3f} mm  rfo={RFO*1e3:.3f} mm  rci={RCI*1e3:.3f} mm  rco={RCO*1e3:.3f} mm")
 print(f"  nf={NF}  nc={NC}  nz={NZ}  dz={DZ0*1e3:.1f} mm  active height={NZ*DZ0:.3f} m")
-print(f"  Conductivity: EsfrSimple (f=3 ESFR-SIMPLE sigmoid)  |  HTC: Subbotin")
+print(f"  Conductivity: SigmoidBurnup (f=3 ESFR-SIMPLE sigmoid)  |  HTC: Subbotin")
 print(f"  tend={TEND/D2S:.0f} d  dtout={DTOUT/D2S:.0f} d  -> HDF5: {os.path.basename(OUTPUT_H5)}")
 print()
 
